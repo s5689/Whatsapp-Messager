@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Whatsapp Messager",
+  "version": "1.0.0",
+  "description": "Que pereza escribir todo a mano zzz...",
+	"action": {
+    "default_popup": "popup.html" 
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+   "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+   ],
+  "permissions": ["activeTab",  "tabs"],
+  "icons": {
+    "48": "/icon48.png",
+    "128": "/icon128.png"
+  }
+}
