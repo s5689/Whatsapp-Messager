@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Whatsapp Messager",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Que pereza escribir todo a mano zzz...",
 	"action": {
     "default_popup": "popup.html" 
@@ -16,7 +16,11 @@
       "js": ["content.js"]
     }
    ],
-  "permissions": ["activeTab",  "tabs"],
+  "permissions": ["activeTab",  "tabs", "scripting", "contextMenus"],
+  "host_permissions": [
+    "https://www.nombrerutyfirma.com/*",
+    "https://reservo.cl/appointment/makeAppointment/*"
+  ],
   "icons": {
     "48": "/icon48.png",
     "128": "/icon128.png"
