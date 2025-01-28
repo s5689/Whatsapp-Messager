@@ -404,11 +404,11 @@ function infoViewer() {
   const doubleHTML = document.querySelector('#infoViewer-Double');
 
   // Comprobar RUT
-  rutHTML.setAttribute('title', format(clientData.Rut));
   rutHTML.onclick = () => window.open(clientData.userLink, '_blank');
   if (clientData.Rut === 'No definida' || clientData.Rut === 'No definido') {
     rutHTML.children[0].setAttribute('color', 'red');
   } else {
+    rutHTML.setAttribute('title', format(clientData.Rut));
     rutHTML.children[0].setAttribute('color', 'green');
   }
 
@@ -484,17 +484,24 @@ function infoViewer() {
   // Comprobar Paciente duplicado
   doubleHTML.setAttribute('title', clientData.duplicated.length);
   if (clientData.duplicated.length !== 1) {
-    doubleHTML.children[0].setAttribute('color', 'red');
-    doubleHTML.onclick = () => {
-      // Copiar RUT al portapapeles
-      navigator.clipboard.writeText(clientData.Rut);
+    // Comprobar que este duplicado mas que no exista (sin RUT)
+    if (clientData.duplicated.length !== 0) {
+      doubleHTML.children[0].setAttribute('color', 'red');
+      doubleHTML.onclick = () => {
+        // Copiar RUT al portapapeles
+        navigator.clipboard.writeText(clientData.Rut);
 
-      // Abrir pestaña de fusion
-      window.open(
-        `https://reservo.cl/pacienteDentista/asociarPacientes/${clientData.duplicated[0].id}/`,
-        '_blank'
-      );
-    };
+        // Abrir pestaña de fusion
+        window.open(
+          `https://reservo.cl/pacienteDentista/asociarPacientes/${clientData.duplicated[0].id}/`,
+          '_blank'
+        );
+      };
+    }
+    // Si el rut no existe, no presentar un color.
+    else {
+      doubleHTML.children[0].setAttribute('color', '');
+    }
   } else {
     doubleHTML.children[0].setAttribute('color', 'green');
   }
