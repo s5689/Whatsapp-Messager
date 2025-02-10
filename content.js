@@ -84,12 +84,19 @@ chrome.runtime.onMessage.addListener((e) => {
 
   // Rut comprobado, realizar procesos finales y presentar datos
   if (e.msg === 'contentRutDone') {
-    clientData.fullName = e.payload;
-    infoViewer();
+    // Si la respuesta proviene de un cliente ya registrado
+    if (modalState) {
+      clientData.fullName = e.payload;
+      infoViewer();
+    }
+    // Si la respuesta proviene de un cliente registrandose
+    else {
+      checkViewer(e.payload);
+    }
   }
 });
 
-// Detectar cuando se abra la planilla del cliente
+// Detectar cuando se abra la planilla de cliente ya registrado
 let x = new MutationObserver((e) => {
   if (e[0].removedNodes) {
     // Abrir
@@ -187,9 +194,31 @@ let x = new MutationObserver((e) => {
   }
 });
 
-// Escuchar evento al abrir la planilla del cliente
+// Detectar cuando se abra la planilla de registrar cliente
+let y = new MutationObserver((e) => {
+  // Asegurar que se trata de registrar cliente y no cliente registrado
+  if (e.length !== 1 && !modalState) {
+    // Rutificador
+    // Asignar el ID de reservo para devolver la informacion
+    chrome.runtime.sendMessage({
+      msg: 'setReservoID',
+    });
+
+    // Preparar boton de comprobar rut al agregar cliente
+    buildRutButtonCheck();
+  } else {
+  }
+});
+
+// Escuchar evento al abrir la planillas
 try {
+  // De cliente ya registrado
   x.observe(document.getElementById('myModal3').parentElement, {
+    childList: true,
+  });
+
+  // De cliente a registrar
+  y.observe(document.getElementById('myModal').parentElement, {
     childList: true,
   });
 } catch (e) {}
@@ -505,4 +534,64 @@ function infoViewer() {
   } else {
     doubleHTML.children[0].setAttribute('color', 'green');
   }
+}
+
+// Crear boton y eventos del Check Rut al registrar cliente
+function buildRutButtonCheck() {
+  const buttonCheck = document.getElementById('check-rut');
+
+  // Crear boton
+  if (buttonCheck === null) {
+    const mainHTML = document.querySelector('#tr_id_rut').children[0];
+    const button = document.createElement('div');
+
+    mainHTML.style.position = 'relative';
+
+    button.id = 'check-rut';
+    button.innerHTML = `
+      <style>
+        #check-rut {
+            position: absolute;
+            right: 0.5rem;
+            top: 3px;
+            height: 26px;
+            width: 26px;
+
+            background-image: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20448%20512%22%3E%3Cpath%20d%3D%22M64%2080c-8.8%200-16%207.2-16%2016l0%20320c0%208.8%207.2%2016%2016%2016l320%200c8.8%200%2016-7.2%2016-16l0-320c0-8.8-7.2-16-16-16L64%2080zM0%2096C0%2060.7%2028.7%2032%2064%2032l320%200c35.3%200%2064%2028.7%2064%2064l0%20320c0%2035.3-28.7%2064-64%2064L64%20480c-35.3%200-64-28.7-64-64L0%2096zM337%20209L209%20337c-9.4%209.4-24.6%209.4-33.9%200l-64-64c-9.4-9.4-9.4-24.6%200-33.9s24.6-9.4%2033.9%200l47%2047L303%20175c9.4-9.4%2024.6-9.4%2033.9%200s9.4%2024.6%200%2033.9z%22%2F%3E%3C%2Fsvg%3E');
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: transparent;
+            border: none;
+
+            cursor: pointer;
+        }
+      </style>
+    `;
+
+    mainHTML.append(button);
+    buildRutButtonCheck();
+  }
+  // Asignar evento cada vez que se abra la planilla
+  else {
+    buttonCheck.onclick = () => {
+      // Obtener rut del Input
+      const rutValue = document.querySelector('#tr_id_rut input[name=rut]').value;
+
+      // Enviar al background
+      if (rutValue !== '') {
+        chrome.runtime.sendMessage({
+          msg: 'rutificadorSet',
+          payload: format(rutValue),
+        });
+      } else {
+        alert('El RUT no puede estar vacio.');
+      }
+    };
+  }
+}
+
+// Presentar rut en casilla de Comentarios al registrar cliente
+function checkViewer(e) {
+  const commentsHTML = document.querySelector('#id_comentario');
+  commentsHTML.value = e;
 }
