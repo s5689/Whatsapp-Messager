@@ -44,6 +44,7 @@ const vocalArray = [
   'ų',
 ];
 
+// Eventos del Background / PopUp
 chrome.runtime.onMessage.addListener((e) => {
   // Detectar llamada del background al abrir la extension (para WhatsApp)
   if (e.msg === 'open') {
@@ -96,6 +97,10 @@ chrome.runtime.onMessage.addListener((e) => {
   }
 });
 
+/*
+  Extension de Agenda
+
+*/
 // Detectar cuando se abra la planilla de cliente ya registrado
 let x = new MutationObserver((e) => {
   if (e[0].removedNodes) {
@@ -594,4 +599,124 @@ function buildRutButtonCheck() {
 function checkViewer(e) {
   const commentsHTML = document.querySelector('#id_comentario');
   commentsHTML.value = e;
+}
+
+/*
+  Extension de Ventas
+
+*/
+// Detectar cuando se agregue un medio de pago
+let z = new MutationObserver((e) => {
+  // Obtener HTML de la tabla de pagos
+  const payHTML = document.querySelector('#tr_id_tipoPago_1').parentElement;
+
+  // Recorrer todos los elementos de la tabla
+  for (let k = 0; k < payHTML.children.length; k++) {
+    // Tomar ID de cada elemento en la tabla
+    const currentID = payHTML.children[k].id;
+
+    // Comprobar de que el elemento sea el metodo de pago de Debito o Credito
+    if (currentID === 'Tarjeta_1' || currentID === 'Debito_1') {
+      // Buscar en todas las celdas del medio de pago
+      payHTML.children[k].querySelectorAll('td').forEach((value) => {
+        // Seleccionar solo el row que contiene el boucher
+        if (value.innerHTML === 'Voucher:') {
+          // Obtener el input del row
+          const voucherInput = value.parentElement.querySelector('input');
+          getCurrentVoucher(voucherInput);
+        }
+      });
+    }
+  }
+});
+
+// Escuchar evento al cmabiar el medio de pago
+try {
+  // De cliente ya registrado
+  z.observe(document.querySelector('#tr_id_tipoPago_1').parentElement, {
+    childList: true,
+  });
+} catch (e) {}
+
+// Deseleccionar automaticamente el boton de imprimir boleta
+try {
+  if (document.title === 'Venta') {
+    document.querySelector("table[style='margin-bottom:0px;'] td input").click();
+  }
+} catch (e) {}
+
+// Funcion para obtener el numero de voucher actual.
+function getCurrentVoucher(e) {
+  // Crear variable con Iframe
+  const iframeHTML = document.createElement('iframe');
+
+  // Asignar valores y parametros
+  iframeHTML.src = 'https://reservo.cl/caja/finanzasinicial/';
+  iframeHTML.id = 'voucher-iframe';
+  iframeHTML.setAttribute('style', 'position: absolute; left: -99999px');
+
+  // Ejecutar cuando el iframe termine de cargar
+  iframeHTML.addEventListener('load', () => {
+    // Obtener document interno del iframe
+    const iframeDocument = iframeHTML.contentDocument;
+
+    // Codigo al entrar en Finanzas
+    if (iframeDocument.location.pathname.includes('/caja/finanzasinicial/')) {
+      // Dar click a ver Caja para ver todos los movimientos
+      iframeDocument.querySelector('#caja').parentElement.querySelector('a').click();
+    }
+    // Codigo al entrar en la Caja actual
+    else {
+      // Obtener tabla de todos los movimientos
+      const rowList = iframeDocument.querySelectorAll('#movimientos tr');
+
+      // Recorrer toda la tabla
+      for (const value of rowList) {
+        // Si no es el membrete de la tabla
+        if (value.id !== '') {
+          // Obtener la celda donde se encuentra el voucher
+          const currentCellHTML = value.children[0].innerHTML;
+          const voucherIndex = currentCellHTML.indexOf('Voucher');
+
+          // Si la palabra Voucher se encuentra en la celda, proceder
+          if (voucherIndex !== -1) {
+            let k = voucherIndex;
+            let resp = '';
+
+            // Recorrer todo el HTML interno de la celda hasta obtener el numero
+            while (k < currentCellHTML.length) {
+              const char = currentCellHTML.charAt(k);
+
+              // Comprobar que el caracter sea un numero
+              if (parseInt(char) == char) {
+                resp = resp + String(char);
+              }
+              // Si encontro numeros y ahora ya no hay, terminar bucle
+              else if (resp !== '') {
+                break;
+              }
+
+              k++;
+            }
+
+            // Si ya encontro el numero del voucher actual, finalizar.
+            if (resp !== '') {
+              e.value = Number(resp) + 1;
+              break;
+            }
+          }
+        }
+      }
+
+      // Si se recorrio toda la tabla pero no hubo voucher, regresar 0.
+      if (e.value === '') {
+        e.value = 0;
+      }
+
+      iframeHTML.remove();
+    }
+  });
+
+  // Crear Iframe para proceder con todo el codigo
+  document.querySelector('body').append(iframeHTML);
 }
