@@ -720,3 +720,96 @@ function getCurrentVoucher(e) {
   // Crear Iframe para proceder con todo el codigo
   document.querySelector('body').append(iframeHTML);
 }
+
+/*
+  Extension Fonasa
+
+*/
+// Fase 1
+if (document.title.includes('Bono Electronico - Venta Directa')) {
+  const prestadorHTML = document.querySelector('#selRutConvenio');
+  const financiadorHTML = document.querySelector('#selCodFinanciador');
+
+  // Seleccionar Financiador cuando cargue
+  new MutationObserver((e) => {
+    if (e.length === 2 || e.length === 3) {
+      const financiadorLenght = financiadorHTML.options.length;
+
+      financiadorHTML.selectedIndex = financiadorLenght - 1;
+
+      // Dejar seleccionado el rut
+      document.querySelector('#txtRutBenef').focus();
+    }
+  }).observe(financiadorHTML, { childList: true });
+
+  // Fase 2
+  new MutationObserver((e) => {
+    // Detectar cuando se abra la pantalla de la Fase 2 para rellenar automaticamente
+    // Si el evento contiene nuevos elementos agregados
+    if ('addedNodes' in e[0]) {
+      // Y si existen elementos (?) js cosas
+      if (e[0].addedNodes.length !== 0) {
+        // Si el elemento es el modal
+        if (e[0].addedNodes[0].id === 'MB_window') {
+          // Repetir busqueda hasta que carguen los inputs
+          const tempInterval = setInterval(() => {
+            const modalInputs = document.querySelectorAll('#MB_window input');
+
+            // Cuando esten los inputs listos, rellenar y continuar.
+            if (modalInputs.length !== 0) {
+              modalInputs[0].value = '77817653-K';
+              modalInputs[1].value = 'Clinica Provincia de Petorca';
+
+              // Continuar cuando se pueda
+              setInterval(() => {
+                document.querySelector('#btnAceptar').click();
+              }, 10);
+
+              clearInterval(tempInterval);
+            }
+          }, 10);
+        }
+      }
+    }
+  }).observe(document.querySelector('body'), { childList: true });
+
+  // Seleccionar Prestador
+  prestadorHTML.options[1].selected = true;
+  prestadorHTML.dispatchEvent(new Event('change'));
+}
+
+// Fase 3
+if (document.title.includes('Bono Electronico - Venta Interfaz')) {
+  // Detectar cuando el formulario de pago este cargado
+  new MutationObserver(() => {
+    // Seleccionar como medio de pago efectivo y aceptarle, respectivamente.
+    document.querySelector('#selFrmPagoBenef').selectedIndex = 1;
+    document.querySelector('#addPagoBenef_0').click();
+
+    // Mostrar monto a pagar de forma VISIBLE.
+    // Solo ejecutar 1 vez.
+    if (document.querySelector('#ext-total') === null) {
+      const ammountHTML = document.createElement('div');
+      const cost = document.querySelector('#tdTotalPagar').innerHTML;
+
+      ammountHTML.id = 'ext-total';
+      ammountHTML.innerHTML = `Total: <b>${cost}$.</b>`;
+      ammountHTML.setAttribute(
+        'style',
+        `
+      font-size: xxx-large;
+      border-top: 5px solid black;
+      padding-top: 1rem;
+      padding-left: 2rem;
+      padding-bottom: 1rem;
+      background-color: antiquewhite;
+      `
+      );
+
+      // Insertar en el body.
+      document.querySelector('.botonera.right').insertAdjacentElement('afterend', ammountHTML);
+    }
+  }).observe(document.querySelector('#contentFormaPago'), { childList: true });
+}
+
+// 3223122-5
