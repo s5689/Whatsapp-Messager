@@ -101,131 +101,114 @@ chrome.runtime.onMessage.addListener((e) => {
   Extension de Agenda
 
 */
-// Detectar cuando se abra la planilla de cliente ya registrado
-let x = new MutationObserver((e) => {
-  if (e[0].removedNodes) {
-    // Abrir
-    if (e.length === 4 || e.length === 12) {
-      modalState = true;
-
-      // Rutificador
-      // Asignar el ID de reservo para devolver la informacion
-      chrome.runtime.sendMessage({
-        msg: 'setReservoID',
-      });
-
-      // Preparar planilla de cliente para mostrar la informacion
-      buildInfoViewer();
-
-      // Ocultar pantalla de datos
-      document.getElementById('modal_datos_extras').style.transform = 'scale(0)';
-
-      // Abrir datos extras automaticamente para extraer informacion
-      document.getElementById('datos_extra').click();
-      document.getElementById('editar_perfil_datos_extra').parentElement.children[0].click();
-
-      // Eliminar fila extra de existir (bug)
-      if (document.querySelector('#editAppt:last-child tr:last-child').clientHeight < 5) {
-        document.querySelector('#editAppt:last-child tr:last-child').remove();
-      }
-
-      // Almacenar datos despues de un tiempo
-      setTimeout(() => {
-        // Devolver valores por defecto a pantalla de datos
-        document.getElementById('modal_datos_extras').style.transform = 'scale(1)';
-
-        // Leer y almacenar datos
-        const raw = document.querySelectorAll('#modal_datos_extras tr');
-        clientData = {};
-
-        // Guardar variables
-        raw.forEach((value) => {
-          clientData[value.children[0].innerHTML] = value.children[1].innerHTML;
-        });
-
-        // Guardar nombre en Reservo en minuscula para simplificar proceso
-        let tempName = document.querySelector('#id_title').value.toLowerCase();
-        tempName = tempName.replace('np: ', '');
-        tempName = tempName.replace('p: ', '');
-
-        clientData.name = tempName;
-
-        // Guardar link de edicion
-        clientData.userLink = document.querySelector('#editar_perfil_datos_extra').href;
-
-        // Comprobar si el usuario se encuentra duplicado
-        fetch(`https://reservo.cl/pacienteDentista/buscarAjaxPerson/?term=+${clientData.Rut}`, {
-          headers: {
-            accept: 'application/json, text/javascript, */*; q=0.01',
-            'accept-language': 'es-419,es;q=0.9',
-            priority: 'u=1, i',
-            'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'x-requested-with': 'XMLHttpRequest',
-          },
-          referrer: 'https://reservo.cl/appointment/makeAppointment/',
-          referrerPolicy: 'strict-origin-when-cross-origin',
-          body: null,
-          method: 'GET',
-          mode: 'cors',
-          credentials: 'include',
-        })
-          .then((resp) => resp.json())
-          .then((data) => {
-            // Guardar la cantidad de usuarios encontrados con el rut
-            clientData.duplicated = data;
-
-            // Una vez terminado de obtener todos los datos, enviar rut al background
-            chrome.runtime.sendMessage({
-              msg: 'rutificadorSet',
-              payload: format(clientData.Rut),
-            });
-          });
-      }, 500);
-    }
-
-    // Cerrar
-    if (
-      e.length === 1 &&
-      e[0].removedNodes.length !== 0 &&
-      e[0].removedNodes[0].classList.length === 1
-    ) {
-      modalState = false;
-    }
-  }
-});
-
-// Detectar cuando se abra la planilla de registrar cliente
-let y = new MutationObserver((e) => {
-  // Asegurar que se trata de registrar cliente y no cliente registrado
-  if (e.length !== 1 && !modalState) {
-    // Rutificador
-    // Asignar el ID de reservo para devolver la informacion
-    chrome.runtime.sendMessage({
-      msg: 'setReservoID',
-    });
-
-    // Preparar boton de comprobar rut al agregar cliente
-    buildRutButtonCheck();
-  } else {
-  }
-});
-
 // Escuchar evento al abrir la planillas
 try {
   // De cliente ya registrado
-  x.observe(document.getElementById('myModal3').parentElement, {
-    childList: true,
-  });
+  new MutationObserver((e) => {
+    if (e[0].removedNodes) {
+      // Abrir
+      if (e.length === 4 || e.length === 12) {
+        modalState = true;
+
+        // Rutificador
+        // Asignar el ID de reservo para devolver la informacion
+        chrome.runtime.sendMessage({
+          msg: 'setReservoID',
+        });
+
+        // Preparar planilla de cliente para mostrar la informacion
+        buildInfoViewer();
+
+        // Ocultar pantalla de datos
+        document.getElementById('modal_datos_extras').style.transform = 'scale(0)';
+
+        // Abrir datos extras automaticamente para extraer informacion
+        document.getElementById('datos_extra').click();
+        document.getElementById('editar_perfil_datos_extra').parentElement.children[0].click();
+
+        // Eliminar fila extra de existir (bug)
+        if (document.querySelector('#editAppt:last-child tr:last-child').clientHeight < 5) {
+          document.querySelector('#editAppt:last-child tr:last-child').remove();
+        }
+
+        // Almacenar datos despues de un tiempo
+        setTimeout(() => {
+          // Devolver valores por defecto a pantalla de datos
+          document.getElementById('modal_datos_extras').style.transform = 'scale(1)';
+
+          // Leer y almacenar datos
+          const raw = document.querySelectorAll('#modal_datos_extras tr');
+          clientData = {};
+
+          // Guardar variables
+          raw.forEach((value) => {
+            clientData[value.children[0].innerHTML] = value.children[1].innerHTML;
+          });
+
+          // Guardar nombre en Reservo en minuscula para simplificar proceso
+          let tempName = document.querySelector('#id_title').value.toLowerCase();
+          tempName = tempName.replace('np: ', '');
+          tempName = tempName.replace('p: ', '');
+
+          clientData.name = tempName;
+
+          // Guardar link de edicion
+          clientData.userLink = document.querySelector('#editar_perfil_datos_extra').href;
+
+          // Comprobar si el usuario se encuentra duplicado
+          fetch(`https://reservo.cl/pacienteDentista/buscarAjaxPerson/?term=+${clientData.Rut}`, {
+            headers: {
+              accept: 'application/json, text/javascript, */*; q=0.01',
+              'accept-language': 'es-419,es;q=0.9',
+              priority: 'u=1, i',
+              'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+              'sec-ch-ua-mobile': '?0',
+              'sec-ch-ua-platform': '"Windows"',
+              'sec-fetch-dest': 'empty',
+              'sec-fetch-mode': 'cors',
+              'sec-fetch-site': 'same-origin',
+              'x-requested-with': 'XMLHttpRequest',
+            },
+            referrer: 'https://reservo.cl/appointment/makeAppointment/',
+            referrerPolicy: 'strict-origin-when-cross-origin',
+            body: null,
+            method: 'GET',
+            mode: 'cors',
+            credentials: 'include',
+          })
+            .then((resp) => resp.json())
+            .then((data) => {
+              // Guardar la cantidad de usuarios encontrados con el rut
+              clientData.duplicated = data;
+
+              // Una vez terminado de obtener todos los datos, enviar rut al background
+              chrome.runtime.sendMessage({
+                msg: 'rutificadorSet',
+                payload: format(clientData.Rut),
+              });
+            });
+        }, 500);
+      }
+
+      // Cerrar
+      if (
+        e.length === 1 &&
+        e[0].removedNodes.length !== 0 &&
+        e[0].removedNodes[0].classList.length === 1
+      ) {
+        modalState = false;
+      }
+    }
+  }).observe(document.getElementById('myModal3').parentElement, { childList: true });
 
   // De cliente a registrar
-  y.observe(document.getElementById('myModal').parentElement, {
-    childList: true,
-  });
+  new MutationObserver((e) => {
+    // Asegurar que se trata de registrar cliente y no cliente registrado
+    if (e.length !== 1 && !modalState) {
+      // Preparar boton de comprobar rut al agregar cliente
+      buildRutButtonCheck();
+    }
+  }).observe(document.getElementById('myModal').parentElement, { childList: true });
 } catch (e) {}
 
 // Detectar URL de la pagina. (Rutificador)
@@ -584,6 +567,12 @@ function buildRutButtonCheck() {
 
       // Enviar al background
       if (rutValue !== '') {
+        // Asignar el ID de reservo para devolver la informacion
+        chrome.runtime.sendMessage({
+          msg: 'setReservoID',
+        });
+
+        // Enviar RUT a verificar
         chrome.runtime.sendMessage({
           msg: 'rutificadorSet',
           payload: format(rutValue),
@@ -605,37 +594,32 @@ function checkViewer(e) {
   Extension de Ventas
 
 */
-// Detectar cuando se agregue un medio de pago
-let z = new MutationObserver((e) => {
-  // Obtener HTML de la tabla de pagos
-  const payHTML = document.querySelector('#tr_id_tipoPago_1').parentElement;
-
-  // Recorrer todos los elementos de la tabla
-  for (let k = 0; k < payHTML.children.length; k++) {
-    // Tomar ID de cada elemento en la tabla
-    const currentID = payHTML.children[k].id;
-
-    // Comprobar de que el elemento sea el metodo de pago de Debito o Credito
-    if (currentID === 'Tarjeta_1' || currentID === 'Debito_1') {
-      // Buscar en todas las celdas del medio de pago
-      payHTML.children[k].querySelectorAll('td').forEach((value) => {
-        // Seleccionar solo el row que contiene el boucher
-        if (value.innerHTML === 'Voucher:') {
-          // Obtener el input del row
-          const voucherInput = value.parentElement.querySelector('input');
-          getCurrentVoucher(voucherInput);
-        }
-      });
-    }
-  }
-});
-
 // Escuchar evento al cmabiar el medio de pago
 try {
   // De cliente ya registrado
-  z.observe(document.querySelector('#tr_id_tipoPago_1').parentElement, {
-    childList: true,
-  });
+  new MutationObserver(() => {
+    // Obtener HTML de la tabla de pagos
+    const payHTML = document.querySelector('#tr_id_tipoPago_1').parentElement;
+
+    // Recorrer todos los elementos de la tabla
+    for (let k = 0; k < payHTML.children.length; k++) {
+      // Tomar ID de cada elemento en la tabla
+      const currentID = payHTML.children[k].id;
+
+      // Comprobar de que el elemento sea el metodo de pago de Debito o Credito
+      if (currentID === 'Tarjeta_1' || currentID === 'Debito_1') {
+        // Buscar en todas las celdas del medio de pago
+        payHTML.children[k].querySelectorAll('td').forEach((value) => {
+          // Seleccionar solo el row que contiene el boucher
+          if (value.innerHTML === 'Voucher:') {
+            // Obtener el input del row
+            const voucherInput = value.parentElement.querySelector('input');
+            getCurrentVoucher(voucherInput);
+          }
+        });
+      }
+    }
+  }).observe(document.querySelector('#tr_id_tipoPago_1').parentElement, { childList: true });
 } catch (e) {}
 
 // Deseleccionar automaticamente el boton de imprimir boleta
