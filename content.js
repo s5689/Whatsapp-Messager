@@ -209,6 +209,161 @@ try {
       buildRutButtonCheck();
     }
   }).observe(document.getElementById('myModal').parentElement, { childList: true });
+
+  // De resumen de Citas
+  document.querySelector('#iframeregistroconfirmacion').addEventListener('load', () => {
+    const iframeDocument = document.querySelector('#iframeregistroconfirmacion').contentDocument;
+    const citasTable = iframeDocument.querySelectorAll('#tickets_email')[0];
+    const citasRows = citasTable.querySelectorAll('tbody tr');
+    const selectedDate = { calendar: '', reservo: '', reservoPrint: '' };
+    const reservoCalendars = [];
+    const doctorList = [];
+
+    // Obtener todos los doctores individuales que atenderan
+    citasRows.forEach((value) => {
+      const currentChildren = value.children;
+      const currentLastCell = currentChildren[currentChildren.length - 1];
+      const currentDoctor = currentLastCell.innerHTML.slice(0, -1);
+      const foundDoctor = doctorList.findIndex((valua) => valua.name === currentDoctor);
+
+      // Si el doctor no esta en el array, crear
+      if (foundDoctor === -1) {
+        doctorList.push({ name: currentDoctor, ammount: 1 });
+      }
+      // Si ya esta, sumar un paciente
+      else {
+        doctorList[foundDoctor].ammount += 1;
+      }
+    });
+
+    // Si la pagina actual es de citas multiples, obtener doctores mostrados
+    const multiCalendar = { state: false, equal: false, text: '' };
+
+    if (location.pathname === '/appointment/viewAllAppts/') {
+      const allCalendars = [];
+
+      // Buscar y almacenar todos los calendarios actuales
+      document.querySelectorAll('#contenedor-calendario td').forEach((value) => {
+        // Solo almacenar si tienen ID de calendario, y tienen contenido
+        if (value.id.includes('schedule_') && value.innerHTML !== '') {
+          allCalendars.push(value);
+        }
+      });
+
+      // Recorrer calendarios
+      allCalendars.forEach((value) => {
+        const currentName = value.querySelector('.fc-center').innerText;
+        const currentSchedule = value.querySelector('.fc-content-skeleton .fc-event-container');
+
+        // Si hay agendas en el calendario
+        if (currentSchedule.length !== 0) {
+          // Recorrer las agendas
+          for (let k = 0; k < currentSchedule.children.length; k++) {
+            // Si la cita no es un Bloqueo de agenda
+            if (currentSchedule.children[k].style.backgroundColor !== 'black') {
+              // Si el doctor no se encuentra en el array
+              if (reservoCalendars.findIndex((value) => value === currentName) === -1) {
+                reservoCalendars.push(currentName);
+              }
+            }
+          }
+        }
+      });
+
+      // Confirmar el multicalendario
+      multiCalendar.state = true;
+    }
+
+    // Obtener las fechas seleccionadas en Reservo y en el calendario
+    selectedDate.calendar = formatDate(iframeDocument.querySelector("[name='fecha']").value);
+    selectedDate.reservo = formatDate(document.querySelector('#datepicker').value);
+    multiCalendar.equal = selectedDate.calendar === selectedDate.reservo ? true : false;
+
+    // Generar texto para Reservo si hay multicalendario
+    if (multiCalendar.state) {
+      selectedDate.reservoPrint = `Fecha en Multicalendario: ${selectedDate.reservo}<br />`;
+    }
+
+    // Organizar lista de doctores para la interfaz
+    let doctorListText = '';
+
+    doctorList.forEach((value) => {
+      let toAlert = '';
+
+      // Si el multicalendario esta activado, comprobar
+      if (multiCalendar.state) {
+        let isFound = false;
+
+        // Recorrer los calendarios con agendas en reservo
+        reservoCalendars.forEach((valua) => {
+          // Si el doctor actual tiene px en reservo, confirmar encontrado
+          if (value.name.includes(valua.slice(0, -1))) {
+            isFound = true;
+          }
+        });
+
+        // Si no se encontro en reservo y las fechas son iguales, presentar error
+        if (!isFound && multiCalendar.equal) {
+          toAlert = '<span style="color:red;">(!)</span>';
+        }
+      }
+
+      // Armar texto
+      doctorListText += `<li>${value.name}: <b>${value.ammount} ${toAlert}</b></li>`;
+    });
+
+    // Mostrar cantidad de pacientes de reservo si esta en modo multicalendario
+    // y si las fechas son iguales
+    if (multiCalendar.state && multiCalendar.equal) {
+      multiCalendar.text = `(${reservoCalendars.length})`;
+    }
+
+    // Crear Interfaz de estadisticas
+    const statsHTML = document.createElement('div');
+    statsHTML.setAttribute(
+      'style',
+      `
+        text-align: left;
+        font-size: large;
+        background-color: antiquewhite;
+        padding: 1rem;
+        border-radius: 2rem;
+      `
+    );
+
+    // Armar HTML
+    statsHTML.innerHTML = `
+      Fecha Seleccionada: ${selectedDate.calendar}<br />
+      ${selectedDate.reservoPrint}<br />
+      Doctores en el dia: <b>${doctorList.length} ${multiCalendar.text}</b><br />
+      Pacientes Agendados: <b>${citasRows.length}</b><br />
+      <br />
+      Cantidad de Pacientes por Doctor <i>(Incluye suspendidos)</i>:<br />
+      <ul>${doctorListText}</ul>
+    `;
+
+    // Inyectar en el Iframe
+    iframeDocument.querySelector('form').insertAdjacentElement('afterend', statsHTML);
+
+    // Formatear la fecha de los calendarios
+    function formatDate(e) {
+      const splitDate = e.split('-');
+      const weekDay = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+      if (splitDate[0].length === 4) {
+        const temp0 = splitDate[2];
+        const temp1 = splitDate[0];
+
+        splitDate[0] = temp0;
+        splitDate[2] = temp1;
+      }
+
+      const mergedDate = `${splitDate[0]}/${splitDate[1]}/${splitDate[2]}`;
+      const tempDate = new Date(`${splitDate[2]}/${splitDate[1]}/${splitDate[0]}`);
+
+      return `${weekDay[tempDate.getDay()]} ${mergedDate}`;
+    }
+  });
 } catch (e) {}
 
 // Detectar URL de la pagina. (Rutificador)
@@ -594,7 +749,7 @@ function checkViewer(e) {
   Extension de Ventas
 
 */
-// Escuchar evento al cmabiar el medio de pago
+// Escuchar evento al cambiar el medio de pago
 try {
   // De cliente ya registrado
   new MutationObserver(() => {
@@ -827,13 +982,13 @@ if (document.title.includes('Bono Electronico - Venta Interfaz')) {
       ammountHTML.setAttribute(
         'style',
         `
-      font-size: xxx-large;
-      border-top: 5px solid black;
-      padding-top: 1rem;
-      padding-left: 2rem;
-      padding-bottom: 1rem;
-      background-color: antiquewhite;
-      `
+        font-size: xxx-large;
+        border-top: 5px solid black;
+        padding-top: 1rem;
+        padding-left: 2rem;
+        padding-bottom: 1rem;
+        background-color: antiquewhite;
+        `
       );
 
       // Insertar en el body.
