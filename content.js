@@ -821,9 +821,8 @@ try {
     };
 
     // Insertar el boton en el HTML
-    document
-      .querySelector('#cliente_seleccionado')
-      .insertAdjacentElement('beforebegin', copyButton);
+    const clientNameHTML = document.querySelector('#cliente_seleccionado');
+    clientNameHTML.insertBefore(copyButton, clientNameHTML.firstChild);
 
     // Deseleccionar boleta
     document.querySelector("table[style='margin-bottom:0px;'] td input").click();
@@ -975,10 +974,10 @@ if (document.title.includes('Bono Electronico - Venta Interfaz')) {
     // Solo ejecutar 1 vez.
     if (document.querySelector('#ext-total') === null) {
       const ammountHTML = document.createElement('div');
-      const cost = document.querySelector('#tdTotalPagar').innerHTML;
+      const costHTML = document.querySelector('#tdTotalPagar');
 
       ammountHTML.id = 'ext-total';
-      ammountHTML.innerHTML = `Total: <b>${cost}$.</b>`;
+      ammountHTML.innerHTML = `Total: <b>${costHTML.innerHTML}$.</b>`;
       ammountHTML.setAttribute(
         'style',
         `
@@ -993,6 +992,11 @@ if (document.title.includes('Bono Electronico - Venta Interfaz')) {
 
       // Insertar en el body.
       document.querySelector('.botonera.right').insertAdjacentElement('afterend', ammountHTML);
+
+      // Detectar posibles cambios en el monto a pagar para actualizar el valor
+      new MutationObserver((e) => {
+        ammountHTML.innerHTML = `Total: <b>${costHTML.innerHTML}$.</b>`;
+      }).observe(document.querySelector('#tdTotalPagar'), { childList: true });
     }
   }).observe(document.querySelector('#contentFormaPago'), { childList: true });
 }
