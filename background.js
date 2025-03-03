@@ -2,6 +2,8 @@ let reservoID = null;
 let rutificadorID = null;
 let rutificadorValue = null;
 
+let fonasaRUT = null;
+
 chrome.runtime.onMessage.addListener((e, idk, resp) => {
   // Asignar ID de la pestaña en la cual se abrio la planilla del cliente
   if (e.msg === 'setReservoID') {
@@ -146,9 +148,71 @@ chrome.runtime.onMessage.addListener((e, idk, resp) => {
     rutificadorValue = null;
     rutificadorID = null;
   }
+
+  // Enviar rut a Fonasa
+  if (e.msg === 'backgroundFonasaRUT') {
+    // Obtener pestañas
+    chrome.tabs.query({ currentWindow: true }, function (tabs) {
+      const foundFonasa = [];
+      let currentID = null;
+
+      // Recorrer las pestañas actuales
+      tabs.forEach((value) => {
+        // Guardar todas las pestañas de Fonasa encontradas
+        if (value.url.includes('bonoelectronico')) {
+          foundFonasa.push(value.id);
+        }
+
+        // Al encontrar la pestaña actual (Reservo), guardar su ID
+        if (value.active) {
+          currentID = value.id;
+        }
+      });
+
+      // Si hay mas de una pagina de Fonasa, emitir error
+      if (foundFonasa.length > 1) {
+        chrome.tabs.sendMessage(currentID, {
+          msg: 'multiFonasaError',
+        });
+        return;
+      }
+
+      // Si no hay paginas de Fonasa abiertas, abrir una nueva
+      if (foundFonasa.length === 0) {
+        chrome.tabs.create({ url: 'https://directo4.bonoelectronico.cl/login.php' }, (tab) => {
+          // Asignar ID de pestaña de Fonasa y el RUT a enviar para la Fase 1
+          fonasaRUT = { id: tab.id, rut: e.payload };
+        });
+      } else {
+        // Si hay 1 pagina de Fonasa, cambiar pestaña & enviar RUT
+        chrome.tabs.update(foundFonasa[0], { active: true });
+        chrome.tabs.sendMessage(foundFonasa[0], {
+          msg: 'setFonasaRUT',
+          payload: e.payload,
+        });
+
+        fonasaRUT = null;
+      }
+    });
+  }
+
+  // Recibir llamada de la Fase 1. Proceder solo si existe un RUT asignado desde la Extension
+  if (e.msg === 'fonasaCall' && fonasaRUT !== null) {
+    // Enviar RUT al content para proceder.
+    chrome.tabs.sendMessage(fonasaRUT.id, {
+      msg: 'setFonasaRUT',
+      payload: fonasaRUT.rut,
+    });
+
+    fonasaRUT = null;
+  }
 });
 
-// Menu de la extension
+/*
+  Menu de la Extension
+
+*/
+// Construir menu
 chrome.runtime.onInstalled.addListener(() => {
   // Crear un menú contextual para el ícono de la extensión
   chrome.contextMenus.create({
@@ -171,3 +235,5 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     });
   }
 });
+
+// chrome.runtime.reload();

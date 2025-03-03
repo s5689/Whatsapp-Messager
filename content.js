@@ -95,6 +95,22 @@ chrome.runtime.onMessage.addListener((e) => {
       checkViewer(e.payload);
     }
   }
+
+  /*
+    Eventos Modulo Fonasa
+
+  */
+  // Emitir error de multiples ventanas
+  if (e.msg === 'multiFonasaError') {
+    alert('Hay varias pestañas de Fonasa Abiertas.\nSolo mantenga 1 abierta por favor.');
+  }
+
+  // Aplicar RUT si se llama desde el Background
+  // (Solo aplica en la Fase 1)
+  if (e.msg === 'setFonasaRUT') {
+    document.querySelector('#txtRutBenef').value = e.payload;
+    document.querySelector('#btnCertificar').click();
+  }
 });
 
 /*
@@ -210,6 +226,11 @@ try {
     }
   }).observe(document.getElementById('myModal').parentElement, { childList: true });
 
+  /*
+    POSIBLE MEJORA:
+    Basar el resumen de citas en base al listado de citas
+      > Crear un boton que abra un modal que contenga la info
+  */
   // De resumen de Citas
   document.querySelector('#iframeregistroconfirmacion').addEventListener('load', () => {
     const iframeDocument = document.querySelector('#iframeregistroconfirmacion').contentDocument;
@@ -804,7 +825,7 @@ try {
       let k = 0;
 
       // Extraer RUT del texto
-      while (true) {
+      for (let k = 0; k < pxText.length; k++) {
         const currentChar = pxText.charAt(k);
 
         if (currentChar !== ' ') {
@@ -812,14 +833,17 @@ try {
         } else {
           break;
         }
-
-        k++;
       }
 
-      // Copiar y enviar alert.
-      navigator.clipboard.writeText(currentRut).then(() => {
-        alert('RUT copiado al portapapeles.');
-      });
+      // Comprobar que el usuario tenga RUT
+      if (parseInt(currentRut.charAt(0)) == currentRut.charAt(0)) {
+        chrome.runtime.sendMessage({
+          msg: 'backgroundFonasaRUT',
+          payload: currentRut,
+        });
+      } else {
+        alert('Paciente sin RUT.');
+      }
     };
 
     // Insertar el boton en el HTML
@@ -922,6 +946,11 @@ if (document.title.includes('Bono Electronico - Venta Directa')) {
 
       // Dejar seleccionado el rut
       document.querySelector('#txtRutBenef').focus();
+
+      // Llamar al background para Autollenar RUT si corresponde.
+      chrome.runtime.sendMessage({
+        msg: 'fonasaCall',
+      });
     }
   }).observe(financiadorHTML, { childList: true });
 
