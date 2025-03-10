@@ -150,7 +150,7 @@ chrome.runtime.onMessage.addListener((e, idk, resp) => {
   }
 
   // Enviar rut a Fonasa
-  if (e.msg === 'backgroundFonasaRUT') {
+  if (e.msg === 'backgroundFonasaCall') {
     // Obtener pestañas
     chrome.tabs.query({ currentWindow: true }, function (tabs) {
       const foundFonasa = [];
@@ -180,25 +180,47 @@ chrome.runtime.onMessage.addListener((e, idk, resp) => {
       // Si no hay paginas de Fonasa abiertas, abrir una nueva
       if (foundFonasa.length === 0) {
         chrome.tabs.create({ url: 'https://directo4.bonoelectronico.cl/login.php' }, (tab) => {
-          // Asignar ID de pestaña de Fonasa y el RUT a enviar para la Fase 1
+          // preparar Fonasa para insercion de RUT
           fonasaRUT = { id: tab.id, rut: e.payload };
         });
-      } else {
-        // Si hay 1 pagina de Fonasa, cambiar pestaña & enviar RUT
+      }
+      // Si hay 1 pagina de Fonasa, cambiar pestaña & comprobar estado de Fonasa
+      else {
         chrome.tabs.update(foundFonasa[0], { active: true });
         chrome.tabs.sendMessage(foundFonasa[0], {
-          msg: 'setFonasaRUT',
-          payload: e.payload,
+          msg: 'checkCurrentFonasa',
         });
 
-        fonasaRUT = null;
+        // preparar Fonasa para insercion de RUT
+        fonasaRUT = { id: foundFonasa[0], rut: e.payload };
+      }
+    });
+  }
+
+  if (e.msg === 'backgroundCheckFonasaRUT' && fonasaRUT !== null) {
+    const foundFonasa = [];
+
+    chrome.tabs.query({ currentWindow: true }, function (tabs) {
+      tabs.forEach((value) => {
+        // Guardar todas las pestañas de Fonasa encontradas
+        if (value.url.includes('bonoelectronico')) {
+          foundFonasa.push(value.id);
+        }
+      });
+
+      // Si hay solo 1 pagina de Fonasa, proceder
+      if (foundFonasa.length === 1) {
+        chrome.tabs.sendMessage(foundFonasa[0], {
+          msg: 'checkCurrentFonasa',
+        });
       }
     });
   }
 
   // Recibir llamada de la Fase 1. Proceder solo si existe un RUT asignado desde la Extension
-  if (e.msg === 'fonasaCall' && fonasaRUT !== null) {
+  if (e.msg === 'fonasaOk' && fonasaRUT !== null) {
     // Enviar RUT al content para proceder.
+
     chrome.tabs.sendMessage(fonasaRUT.id, {
       msg: 'setFonasaRUT',
       payload: fonasaRUT.rut,

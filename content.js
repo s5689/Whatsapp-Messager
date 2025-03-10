@@ -1,7 +1,7 @@
 let modalState = false;
 let isReady = false;
 let clientData = {};
-const withoutLicence = ['PABLO PACHECO', 'JAVIER SANCHEZ ARREAZA'];
+const withoutLicence = ['PABLO PACHECO'];
 const vocalArray = [
   'á',
   'à',
@@ -103,6 +103,86 @@ chrome.runtime.onMessage.addListener((e) => {
   // Emitir error de multiples ventanas
   if (e.msg === 'multiFonasaError') {
     alert('Hay varias pestañas de Fonasa Abiertas.\nSolo mantenga 1 abierta por favor.');
+  }
+
+  // Comprobar la fase actual que al recibir la orden
+  if (e.msg === 'checkCurrentFonasa') {
+    const bonoResult = document.querySelector('#tbodyResultado_0');
+    const loginHTML = document.querySelector('#form_login');
+    const rutInput = document.querySelector('#txtRutBenef');
+
+    // Si se encuentra en la pantalla de espera de RUT, proceder
+    if (rutInput !== null) {
+      const rutDisabled = rutInput.getAttribute('disabled');
+
+      // Comprobar que no sea la fase 2
+      if (rutDisabled === null) {
+        chrome.runtime.sendMessage({
+          msg: 'fonasaOk',
+        });
+      }
+    }
+
+    // Si se encuentra en la pantalla de pago finalizado, volver a la fase 1
+    if (bonoResult !== null) {
+      document.querySelector('#btnVolverApp').click();
+    }
+
+    /*
+    // Si se encuentra en el Login, presentar inicio de sesion rapido
+    if (loginHTML !== null) {
+      const modalHTML = document.createElement('div');
+      const fsContainer = document.createElement('div');
+
+
+      modalHTML.id = 'fastswitch-modal';
+      modalHTML.setAttribute(
+        'style',
+        `
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          margin: 0;
+          background-color: rgba(0,0,0,0.6);
+        `
+      );
+
+      // border: 3px solid #8CC63E;
+      // border-radius: 8px;
+      fsContainer.setAttribute(
+        'style',
+        `
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+
+          position: absolute;
+          top: 30%;
+          left: 50%;
+          transform: translate(-50%, -70%);
+          
+          height: 200px;
+          width: 400px;
+          background-color: white;
+          border: 3px solid #8CC63E;
+          border-radius: 8px;
+        `
+      );
+
+      fsContainer.innerHTML = `
+        <button rut="28203131-0">Yo</button>
+        <button rut="26200247-0">Isa</button>
+        <br />
+        <button>Volver</button>
+      `;
+
+      modalHTML.append(fsContainer);
+      document.querySelector('body').append(modalHTML);
+    }
+    */
   }
 
   // Aplicar RUT si se llama desde el Background
@@ -799,7 +879,7 @@ try {
 } catch (e) {}
 
 // Deseleccionar automaticamente el boton de imprimir boleta
-// Enviar RUT a Reservo
+// Enviar RUT a Fonasa
 try {
   if (document.title === 'Venta') {
     // Deseleccionar boleta
@@ -817,7 +897,7 @@ try {
     // Icono del Boton
     copyButton.innerHTML = `<svg viewBox="0 0 38.761776581426645 32.32075471698113" xmlns="http://www.w3.org/2000/svg"><defs><style>.cls-1{fill:#05c08a;}.cls-1,.cls-2{stroke-width:0px;}.cls-2{fill:#092f6d;}</style></defs><path d="m49.14,27.71c0,1.55-.87,2.33-2.64,2.33s-2.67-.78-2.67-2.33v-13.05c0-.68.22-1.27.68-1.68.47-.43,1.12-.65,1.99-.65,1.77,0,2.64.78,2.64,2.33v13.05h0Zm-.5-18.83c-.53.56-1.24.84-2.05.84s-1.55-.28-2.08-.84c-.53-.56-.81-1.24-.81-2.05s.28-1.46.87-2.02c.59-.53,1.24-.81,1.99-.81.84,0,1.52.28,2.05.81.53.53.81,1.21.81,2.02s-.25,1.46-.78,2.05" class="cls-2"/><path d="m62.25,20.13c0-1.15-.22-2.05-.68-2.7-.47-.68-1.12-.99-1.93-.99-2.08,0-3.11,1.3-3.11,3.91v7.46c0,1.49-.9,2.24-2.67,2.24s-2.61-.75-2.61-2.24v-7.77c0-2.67.78-4.66,2.3-6,1.55-1.34,3.42-1.99,5.65-1.99,2.58,0,4.51.93,5.78,2.83,1.34-1.9,3.32-2.83,5.97-2.83,2.24,0,4.1.65,5.5,1.99,1.43,1.3,2.14,3.32,2.14,6.06v7.67c0,1.49-.9,2.24-2.67,2.24s-2.61-.75-2.61-2.24v-7.67c0-2.55-.96-3.85-2.86-3.85-.84,0-1.55.34-2.08,1.06-.53.68-.81,1.68-.81,2.92v7.55c0,1.49-.9,2.24-2.67,2.24s-2.61-.75-2.61-2.24v-7.64h-.03Z" class="cls-2"/><path d="m86.11,18.79h6.93c-.16-.84-.53-1.52-1.15-2.05-.62-.5-1.37-.75-2.24-.75-1.9,0-3.08.93-3.54,2.8m-2.92,8.92c-1.68-1.71-2.52-3.91-2.52-6.59s.84-4.72,2.49-6.46c1.65-1.77,3.79-2.64,6.43-2.64s4.54.75,6.12,2.21c1.55,1.46,2.36,3.32,2.36,5.56,0,1.62-.68,2.39-2.02,2.39h-10.13c.09,2.55,1.68,3.79,4.72,3.79,1.27,0,2.64-.31,4.16-.9.68-.25,1.24-.12,1.74.37.47.5.71,1.12.71,1.8s-.31,1.21-.96,1.62c-1.46.93-3.42,1.4-5.81,1.4-3.2.03-5.62-.84-7.3-2.55" class="cls-2"/><path d="m106.06,17.64c-.84.93-1.27,2.08-1.27,3.42,0,1.49.4,2.7,1.18,3.64s1.9,1.37,3.32,1.37,2.45-.47,3.26-1.43c.81-.93,1.21-2.14,1.21-3.57,0-1.34-.4-2.49-1.21-3.42s-1.9-1.43-3.26-1.43c-1.3.03-2.39.5-3.23,1.43m7.71-4.23V4.09c0-.71.22-1.3.68-1.71.47-.4,1.12-.62,1.93-.62,1.77,0,2.67.78,2.67,2.33v15.81c0,1.27-.19,2.49-.53,3.64-.37,1.15-.93,2.27-1.68,3.26-.75,1.03-1.8,1.83-3.11,2.45-1.34.62-2.89.93-4.63.93-2.89,0-5.22-.84-6.93-2.55s-2.58-3.85-2.58-6.43.9-4.91,2.67-6.62,3.91-2.55,6.4-2.55c2.21,0,3.85.47,4.97,1.4l.12-.03Z" class="cls-2"/><path d="m1.04,12.73c0,3.14,1.3,5.93,3.39,7.95l8.39,8.23c1.43,1.4,3.6,3.2,7.02,3.2s5.84-1.99,7.02-3.2l10.1-10.28c.53-.53.87-1.27.87-2.11,0-1.62-1.27-2.89-2.86-2.89-.84,0-1.55.34-2.08.87l-10.41,10.22c-.68.65-1.62,1.06-2.67,1.06-.99,0-1.86-.4-2.52-1.06l-8.7-8.2c-1.03-.93-1.68-2.3-1.68-3.79,0-2.8,2.3-5.1,5.13-5.1,1.46,0,2.77.62,3.73,1.55l1.9,1.8c.5.53,1.24.87,2.08.87,1.62,0,2.89-1.27,2.89-2.95,0-.78-.31-1.46-.78-1.99l-1.99-1.96c-2.02-1.99-4.78-3.23-7.86-3.23C5.95,1.73,1.04,6.67,1.04,12.73" class="cls-2"/><path d="m11.73,15.28c0,.81.31,1.58.87,2.08l5.1,4.57c1.4,1.27,2.95,1.27,4.29,0l11.99-12.37c.5-.53.81-1.24.81-2.05,0-1.55-1.27-2.8-2.86-2.8-.81,0-1.52.31-2.02.81l-9.79,10.1c-.22.22-.5.25-.71.03l-2.67-2.42c-.5-.5-1.24-.84-2.05-.84-1.62-.03-2.95,1.27-2.95,2.89" class="cls-1"/></svg>`;
 
-    // Enviar a Reservo al dar click
+    // Enviar a Fonasa al dar click
     copyButton.onclick = (e) => {
       e.preventDefault();
       const pxText = document.querySelector('#person b').innerHTML;
@@ -838,7 +918,7 @@ try {
       // Comprobar que el usuario tenga RUT
       if (parseInt(currentRut.charAt(0)) == currentRut.charAt(0)) {
         chrome.runtime.sendMessage({
-          msg: 'backgroundFonasaRUT',
+          msg: 'backgroundFonasaCall',
           payload: currentRut,
         });
       } else {
@@ -874,53 +954,76 @@ function getCurrentVoucher(e) {
     }
     // Codigo al entrar en la Caja actual
     else {
-      // Obtener tabla de todos los movimientos
-      const rowList = iframeDocument.querySelectorAll('#movimientos tr');
+      // MARDITO RESERVO
+      // Detectar la carga de la tabla de ventas.
+      new MutationObserver((a) => {
+        let loaded = false;
 
-      // Recorrer toda la tabla
-      for (const value of rowList) {
-        // Si no es el membrete de la tabla
-        if (value.id !== '') {
-          // Obtener la celda donde se encuentra el voucher
-          const currentCellHTML = value.children[0].innerHTML;
-          const voucherIndex = currentCellHTML.indexOf('Voucher');
-
-          // Si la palabra Voucher se encuentra en la celda, proceder
-          if (voucherIndex !== -1) {
-            let k = voucherIndex;
-            let resp = '';
-
-            // Recorrer todo el HTML interno de la celda hasta obtener el numero
-            while (k < currentCellHTML.length) {
-              const char = currentCellHTML.charAt(k);
-
-              // Comprobar que el caracter sea un numero
-              if (parseInt(char) == char) {
-                resp = resp + String(char);
-              }
-              // Si encontro numeros y ahora ya no hay, terminar bucle
-              else if (resp !== '') {
-                break;
-              }
-
-              k++;
-            }
-
-            // Si ya encontro el numero del voucher actual, finalizar.
-            if (resp !== '') {
-              e.value = Number(resp) + 1;
-              break;
+        // Recorrer todos los eventos
+        a.forEach((value) => {
+          // Al detectar la carga de la tabla de ventas, proceder
+          if (value.target.id === 'body_tabla_ventas') {
+            // Si hay nuevos elementos, proceder
+            if (value.addedNodes.length !== 0) {
+              loaded = true;
             }
           }
+        });
+
+        // Todo igual.
+        if (loaded) {
+          // Obtener tabla de todos los movimientos
+          const rowList = iframeDocument.querySelectorAll('#movimientos tr');
+
+          // Recorrer toda la tabla
+          for (const value of rowList) {
+            // Si no es el membrete de la tabla
+            if (value.parentElement.nodeName === 'TBODY') {
+              // Obtener la celda donde se encuentra el voucher
+              const currentCellHTML = value.children[0].innerHTML;
+              const voucherIndex = currentCellHTML.indexOf('Voucher');
+
+              // Si la palabra Voucher se encuentra en la celda, proceder
+              if (voucherIndex !== -1) {
+                let k = voucherIndex;
+                let resp = '';
+
+                // Recorrer todo el HTML interno de la celda hasta obtener el numero
+                while (k < currentCellHTML.length) {
+                  const char = currentCellHTML.charAt(k);
+
+                  // Comprobar que el caracter sea un numero
+                  if (parseInt(char) == char) {
+                    resp = resp + String(char);
+                  }
+                  // Si encontro numeros y ahora ya no hay, terminar bucle
+                  else if (resp !== '') {
+                    break;
+                  }
+
+                  k++;
+                }
+
+                // Si ya encontro el numero del voucher actual, finalizar.
+                if (resp !== '') {
+                  e.value = Number(resp) + 1;
+                  break;
+                }
+              }
+            }
+          }
+
+          // Si se recorrio toda la tabla pero no hubo voucher, regresar 0.
+          if (e.value === '') {
+            e.value = 0;
+          }
+
+          iframeHTML.remove();
         }
-      }
-
-      // Si se recorrio toda la tabla pero no hubo voucher, regresar 0.
-      if (e.value === '') {
-        e.value = 0;
-      }
-
-      iframeHTML.remove();
+      }).observe(iframeDocument.querySelector('body'), {
+        subtree: true,
+        childList: true,
+      });
     }
   });
 
@@ -949,7 +1052,7 @@ if (document.title.includes('Bono Electronico - Venta Directa')) {
 
       // Llamar al background para Autollenar RUT si corresponde.
       chrome.runtime.sendMessage({
-        msg: 'fonasaCall',
+        msg: 'backgroundCheckFonasaRUT',
       });
     }
   }).observe(financiadorHTML, { childList: true });
@@ -1024,9 +1127,11 @@ if (document.title.includes('Bono Electronico - Venta Interfaz')) {
       // Detectar posibles cambios en el monto a pagar para actualizar el valor
       new MutationObserver(() => {
         ammountHTML.innerHTML = `Total: <b>${costHTML.innerHTML}$.</b>`;
-      }).observe(document.querySelector('#tdTotalPagar'), { childList: true });
+      }).observe(document.querySelector('#tdTotalPagar'), { childList: true, subtree: true });
     }
   }).observe(document.querySelector('#contentFormaPago'), { childList: true });
 }
 
 // 3223122-5
+// document.querySelector("#tbodyResultado_0").innerHTML !== ""
+// btnVolverApp
