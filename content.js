@@ -1132,9 +1132,17 @@ try {
       // Autocompletar valor boleta
       new MutationObserver(() => {
         // Buscar el input con el valor en el Modal de emision de boletas
-        document.querySelectorAll('#modal_detalle_boletas input').forEach((value) => {
+        document.querySelectorAll('#modal_detalle_boletas #table_1 input').forEach((value) => {
           // Al encontrarlo, cambiar valor por el valor del copago
+          if (value.id.includes('boleta_preciounitario_1')) {
+            value.value = autocompleteData.copago.replace('.', '');
+          }
+
           if (value.id.includes('boleta_precio_1')) {
+            value.value = autocompleteData.copago;
+          }
+
+          if (value.id.includes('boleta_total_1')) {
             value.value = autocompleteData.copago;
           }
         });
