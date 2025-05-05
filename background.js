@@ -1,6 +1,7 @@
 let reservoID = null;
 let rutificadorID = null;
 let rutificadorValue = null;
+let socketConnection = false;
 
 let fonasaRUT = null;
 
@@ -131,6 +132,19 @@ chrome.runtime.onMessage.addListener((e, idk, resp) => {
           });
       },
       args: [rutificadorValue],
+    });
+  }
+
+  // Comprobar conexion con el socket
+  if (e.msg === 'backgroundCheckSocket' && !socketConnection) {
+    socketConnection = true;
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const currentID = tabs[0].id;
+
+      chrome.tabs.sendMessage(currentID, {
+        msg: 'setSocket',
+      });
     });
   }
 

@@ -46,6 +46,23 @@ const vocalArray = [
 
 // Eventos del Background / PopUp
 chrome.runtime.onMessage.addListener((e) => {
+  // Eventos del WebSocket
+  if (e.msg === 'setSocket') {
+    const socket = new WebSocket('https://titmouse-settling-trout.ngrok-free.app');
+
+    socket.onopen = () => {
+      socket.send(JSON.stringify({ msg: 'setID', payload: 'r2' }));
+
+      setTimeout(() => {
+        socket.send(JSON.stringify({ msg: 'test' }));
+      }, 3000);
+    };
+
+    socket.onmessage = (e) => {
+      console.log(e.data);
+    };
+  }
+
   // Detectar llamada del background al abrir la extension (para WhatsApp)
   if (e.msg === 'open') {
     const resp = generateMessage();
@@ -105,6 +122,9 @@ chrome.runtime.onMessage.addListener((e) => {
     alert('Hay varias pestañas de Fonasa Abiertas.\nSolo mantenga 1 abierta por favor.');
   }
 
+  /*
+    <WIP
+  */
   // Comprobar la fase actual que al recibir la orden
   if (e.msg === 'checkCurrentFonasa') {
     const bonoResult = document.querySelector('#tbodyResultado_0');
@@ -184,6 +204,9 @@ chrome.runtime.onMessage.addListener((e) => {
     }
     */
   }
+  /*
+    WIP>
+  */
 
   // Aplicar RUT si se llama desde el Background
   // (Solo aplica en la Fase 1)
@@ -1131,6 +1154,11 @@ if (document.title.includes('Bono Electronico - Venta Interfaz')) {
     }
   }).observe(document.querySelector('#contentFormaPago'), { childList: true });
 }
+
+// Conectar al socket de corresponder
+chrome.runtime.sendMessage({
+  msg: 'backgroundCheckSocket',
+});
 
 // 3223122-5
 // document.querySelector("#tbodyResultado_0").innerHTML !== ""
