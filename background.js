@@ -1,8 +1,10 @@
 let reservoID = null;
 let rutificadorID = null;
 let rutificadorValue = null;
+let socketConnection = false;
 
 let fonasaRUT = null;
+let reservoVentaID = null;
 
 chrome.runtime.onMessage.addListener((e, idk, resp) => {
   // Asignar ID de la pestaña en la cual se abrio la planilla del cliente
@@ -134,6 +136,19 @@ chrome.runtime.onMessage.addListener((e, idk, resp) => {
     });
   }
 
+  // Comprobar conexion con el socket
+  if (e.msg === 'backgroundCheckSocket' && !socketConnection) {
+    socketConnection = true;
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const currentID = tabs[0].id;
+
+      chrome.tabs.sendMessage(currentID, {
+        msg: 'setSocket',
+      });
+    });
+  }
+
   // Recibir respuesta de Rutificador y Reenviar a pestaña de Reservo
   if (e.msg === 'backgroundRutDone') {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -194,6 +209,8 @@ chrome.runtime.onMessage.addListener((e, idk, resp) => {
         // preparar Fonasa para insercion de RUT
         fonasaRUT = { id: foundFonasa[0], rut: e.payload };
       }
+
+      reservoVentaID = currentID;
     });
   }
 
@@ -227,6 +244,30 @@ chrome.runtime.onMessage.addListener((e, idk, resp) => {
     });
 
     fonasaRUT = null;
+  }
+
+  // Recibir llamada de la Fase 3 para autocompleta venta fonasa en Reservo
+  if (e.msg === 'backgroundAutocompleteVenta') {
+    // Si existe el ID de venta de reservo, proceder
+    if (reservoVentaID !== null) {
+      chrome.tabs.update(reservoVentaID, { active: true });
+      chrome.tabs.sendMessage(reservoVentaID, {
+        msg: 'setAutocompleteVenta',
+        payload: e.payload,
+      });
+
+      reservoVentaID = null;
+    }
+    // Si no existe el ID de venta (se selecciono el boton sin proceder desde reservo), enviar error
+    else {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const currentID = tabs[0].id;
+
+        chrome.tabs.sendMessage(currentID, {
+          msg: 'autocompleteError',
+        });
+      });
+    }
   }
 });
 

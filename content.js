@@ -1,6 +1,7 @@
 let modalState = false;
 let isReady = false;
 let clientData = {};
+let autocompleteData = {};
 const withoutLicence = ['PABLO PACHECO'];
 const vocalArray = [
   'á',
@@ -46,6 +47,25 @@ const vocalArray = [
 
 // Eventos del Background / PopUp
 chrome.runtime.onMessage.addListener((e) => {
+  // Eventos del WebSocket
+  /*
+  if (e.msg === 'setSocket') {
+    const socket = new WebSocket('https://titmouse-settling-trout.ngrok-free.app');
+
+    socket.onopen = () => {
+      socket.send(JSON.stringify({ msg: 'setID', payload: 'r2' }));
+
+      setTimeout(() => {
+        socket.send(JSON.stringify({ msg: 'test' }));
+      }, 3000);
+    };
+
+    socket.onmessage = (e) => {
+      console.log(e.data);
+    };
+  }
+  */
+
   // Detectar llamada del background al abrir la extension (para WhatsApp)
   if (e.msg === 'open') {
     const resp = generateMessage();
@@ -105,6 +125,9 @@ chrome.runtime.onMessage.addListener((e) => {
     alert('Hay varias pestañas de Fonasa Abiertas.\nSolo mantenga 1 abierta por favor.');
   }
 
+  /*
+    <WIP
+  */
   // Comprobar la fase actual que al recibir la orden
   if (e.msg === 'checkCurrentFonasa') {
     const bonoResult = document.querySelector('#tbodyResultado_0');
@@ -184,12 +207,28 @@ chrome.runtime.onMessage.addListener((e) => {
     }
     */
   }
+  /*
+    WIP>
+  */
 
   // Aplicar RUT si se llama desde el Background
   // (Solo aplica en la Fase 1)
   if (e.msg === 'setFonasaRUT') {
     document.querySelector('#txtRutBenef').value = e.payload;
     document.querySelector('#btnCertificar').click();
+  }
+
+  // Autocompletar datos de venta de Fonasa en reservo
+  if (e.msg === 'setAutocompleteVenta') {
+    autocompleteData = e.payload;
+    document.querySelector('#payment-type-modal').style.display = 'block';
+  }
+
+  // Emitir error de peticion de Autocompletar sin ID de reservo
+  if (e.msg === 'autocompleteError') {
+    alert(
+      'Debe procesar el pago de Fonasa desde la venta de Reservo (El boton al lado del RUT) para poder autocompletar los campos.'
+    );
   }
 });
 
@@ -570,6 +609,27 @@ function format(e) {
   return `${text}-${e.charAt(e.length - 1)}`;
 }
 
+// Aplicar formato a un valor
+function formatValue(e) {
+  const value = e.toString();
+  const breakPoints = [3, 6, 9];
+  let text = '';
+  let k = 0;
+
+  while (k < value.length) {
+    const current = value.length - k - 1;
+
+    if (breakPoints.includes(k)) {
+      text = '.' + text;
+    }
+
+    text = value.charAt(current) + text;
+    k++;
+  }
+
+  return text;
+}
+
 // Crear estructura de presentacion de datos
 function buildInfoViewer() {
   // Limpiar espacio y preparar representacion de datos
@@ -881,7 +941,12 @@ try {
 // Deseleccionar automaticamente el boton de imprimir boleta
 // Enviar RUT a Fonasa
 try {
+  // Inyectar solo si se encuentra en el modulo de ventas
   if (document.title === 'Venta') {
+    /*
+      Boton Fonasa
+
+    */
     // Deseleccionar boleta
     document.querySelector("table[style='margin-bottom:0px;'] td input").click();
 
@@ -929,6 +994,155 @@ try {
     // Insertar el boton en el HTML
     const clientNameHTML = document.querySelector('#cliente_seleccionado');
     clientNameHTML.insertBefore(copyButton, clientNameHTML.firstChild);
+
+    /*
+      Autocompletar Pagos Fonasa
+
+    */
+    const paymentModal = document.createElement('div');
+    paymentModal.id = 'payment-type-modal';
+    paymentModal.innerHTML = `
+      <style>
+        #payment-type-modal {
+          display: none;
+          position: absolute;
+          top: 45%;
+          left: 50%;
+          transform: translate(-50%, -55%);
+
+          padding: 1.5rem;
+
+          background-color: white;
+          border: 1px solid rgb(156 163 175);
+          border-radius: 1rem;
+
+          z-index: 999;
+        }
+
+        #payment-type-modal button {
+          font-size: 28px;
+          padding: 3rem;
+          border: 1px solid rgb(156 163 175);
+          border-radius: 1rem;
+          margin: 0.5rem;
+
+          color: white;
+          border: 1px solid rgb(156 163 175);
+        }
+
+        #payment-type-modal #efectivo-button {
+          background-color: #338833;
+        }
+
+        #payment-type-modal #debito-button {
+          background-color: #3D85C6;
+        }
+
+        #payment-type-modal #credito-button {
+          background-color: #993333;
+        }
+      </style>
+
+      <button id="efectivo-button">Efectivo</button>
+      <button id="debito-button">Debito</button>
+      <button id="credito-button">Credito</button>
+    `;
+
+    // Setear Onclicks
+    paymentModal.querySelectorAll('button').forEach((value) => {
+      value.onclick = () => autoPayment(value.id);
+    });
+
+    document.querySelector('body').append(paymentModal);
+
+    function autoPayment(e) {
+      const setters = {
+        tipoPago: [],
+
+        // Guardar el HTML del tipo de pago (se enumeran por el indice)
+        setTipoPago(e) {
+          const current = document.querySelector(`#id_tipoPago_${e}`);
+          this.tipoPago.push(current);
+        },
+
+        // Agregar otro tipo de pago
+        addTipoPago() {
+          document.querySelector('#add-another_1').click();
+        },
+
+        // Cambiar seleccion de los selects a los correspondientes
+        changeSelection(n, v) {
+          if (n === 1) {
+            switch (v) {
+              case 'efectivo-button':
+                this.tipoPago[n - 1].selectedIndex = 1;
+                break;
+
+              case 'debito-button':
+                this.tipoPago[n - 1].selectedIndex = 3;
+                break;
+
+              case 'credito-button':
+                this.tipoPago[n - 1].selectedIndex = 2;
+                break;
+            }
+          } else {
+            this.tipoPago[n - 1].selectedIndex = v;
+          }
+        },
+
+        // Disparar evento de cambio en los selects
+        applyChanges(e) {
+          this.tipoPago[e - 1].dispatchEvent(new Event('change', { bubbles: true }));
+        },
+
+        // Aplicar nuevos valores segun el tipo de pago usado (???? con el que programo esto)
+        setPagoValue(e, v) {
+          switch (e) {
+            case 'efectivo-button':
+              document.querySelector('#tipoPagovalor_1').value = v;
+              break;
+
+            case 'debito-button':
+              document.querySelector('#id_montodebito_1').value = v;
+              break;
+
+            case 'credito-button':
+              document.querySelector('#id_montotarjeta_1').value = v;
+              break;
+          }
+        },
+      };
+
+      paymentModal.style.display = 'none';
+
+      setters.setTipoPago(1);
+      setters.changeSelection(1, e);
+      setters.applyChanges(1);
+
+      setters.addTipoPago();
+      setters.setTipoPago(2);
+      setters.changeSelection(2, 6);
+      setters.applyChanges(2);
+
+      setters.setPagoValue(e, autocompleteData.copago);
+      document.querySelector('#id_numerobono_1').value = autocompleteData.numeroBono;
+      document.querySelector('#id_montobono_1').value = autocompleteData.bonif;
+
+      // Autocompletar valor boleta
+      new MutationObserver(() => {
+        // Buscar el input con el valor en el Modal de emision de boletas
+        document.querySelectorAll('#modal_detalle_boletas input').forEach((value) => {
+          // Al encontrarlo, cambiar valor por el valor del copago
+          if (value.id.includes('boleta_precio_1')) {
+            value.value = autocompleteData.copago;
+          }
+        });
+      }).observe(document.querySelector('#modal_detalle_boletas'), {
+        childList: true,
+        subtree: true,
+      });
+    }
   }
 } catch (e) {}
 
@@ -1118,8 +1332,33 @@ if (document.title.includes('Bono Electronico - Venta Interfaz')) {
         padding-left: 2rem;
         padding-bottom: 1rem;
         background-color: antiquewhite;
+        user-select: none;
+        cursor: pointer;
         `
       );
+      ammountHTML.onclick = () => {
+        try {
+          const prestacion = document.querySelector('#tdTotalPrestac').innerHTML;
+          const bonif = document.querySelector('#tdTotalBonif').innerHTML;
+          const seguroComp = document.querySelector('#tdTotalSegComp').innerHTML;
+          const copago = document.querySelector('#tdTotalPagar').innerHTML;
+          const numeroBono = document.querySelector('#tbodyResultado_0 td').innerHTML;
+
+          chrome.runtime.sendMessage({
+            msg: 'backgroundAutocompleteVenta',
+            payload: {
+              prestacion,
+              bonif: formatValue(
+                Number(bonif.replaceAll('.', '')) + Number(seguroComp.replaceAll('.', ''))
+              ),
+              copago,
+              numeroBono,
+            },
+          });
+        } catch (e) {
+          alert('Debe emitir el Bono antes de proceder al pago en Reservo.');
+        }
+      };
 
       // Insertar en el body.
       document.querySelector('.botonera.right').insertAdjacentElement('afterend', ammountHTML);
@@ -1131,6 +1370,13 @@ if (document.title.includes('Bono Electronico - Venta Interfaz')) {
     }
   }).observe(document.querySelector('#contentFormaPago'), { childList: true });
 }
+
+// Conectar al socket de corresponder
+/*
+chrome.runtime.sendMessage({
+  msg: 'backgroundCheckSocket',
+});
+*/
 
 // 3223122-5
 // document.querySelector("#tbodyResultado_0").innerHTML !== ""
