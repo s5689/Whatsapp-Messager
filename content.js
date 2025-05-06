@@ -125,10 +125,8 @@ chrome.runtime.onMessage.addListener((e) => {
     alert('Hay varias pestañas de Fonasa Abiertas.\nSolo mantenga 1 abierta por favor.');
   }
 
-  /*
-    <WIP
-  */
   // Comprobar la fase actual que al recibir la orden
+  // FASTSWITCH
   if (e.msg === 'checkCurrentFonasa') {
     const bonoResult = document.querySelector('#tbodyResultado_0');
     const loginHTML = document.querySelector('#form_login');
@@ -152,64 +150,89 @@ chrome.runtime.onMessage.addListener((e) => {
     }
 
     /*
+      FastSwitch
+
+    */
     // Si se encuentra en el Login, presentar inicio de sesion rapido
     if (loginHTML !== null) {
       const modalHTML = document.createElement('div');
-      const fsContainer = document.createElement('div');
-
-
       modalHTML.id = 'fastswitch-modal';
-      modalHTML.setAttribute(
-        'style',
-        `
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          margin: 0;
-          background-color: rgba(0,0,0,0.6);
-        `
-      );
+      modalHTML.innerHTML = `
+        <style>
+          #fastswitch-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            background-color: rgba(0, 0, 0, 0.6);
 
-      // border: 3px solid #8CC63E;
-      // border-radius: 8px;
-      fsContainer.setAttribute(
-        'style',
-        `
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
+            user-select: none;
+          }
 
-          position: absolute;
-          top: 30%;
-          left: 50%;
-          transform: translate(-50%, -70%);
-          
-          height: 200px;
-          width: 400px;
-          background-color: white;
-          border: 3px solid #8CC63E;
-          border-radius: 8px;
-        `
-      );
+          #fastswitch-modal #fs-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
 
-      fsContainer.innerHTML = `
-        <button rut="28203131-0">Yo</button>
-        <button rut="26200247-0">Isa</button>
-        <br />
-        <button>Volver</button>
+            position: absolute;    
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -55%);
+            
+            width: 400px;
+            padding: 1rem;
+
+            background-color: white;
+            border: 3px solid #8CC63E;
+            border-radius: 8px;
+          }
+
+          #fastswitch-modal #fs-container button {
+            font-size: 1.5rem;
+            width: 75%;
+
+            padding: 0.5rem;
+            margin: 0.5rem;
+
+            color: white;
+            background-color: #7F7D7D;
+            border: 1px solid lightgray;
+            border-radius: 1rem;
+
+            cursor: pointer;
+          }
+        </style>
+
+        <div id="fs-container">
+          <button value="28203131-0">Yo</button>
+          <button value="">Zulisss</button>
+          <button value="26200247-0">Isaisaisa</button>
+          <br />
+          <button value="back">Volver</button>
+        </div>
       `;
 
-      modalHTML.append(fsContainer);
+      // Asignar eventos a todas las opciones
+      modalHTML.querySelectorAll('#fastswitch-modal button').forEach((value) => {
+        value.onclick = () => {
+          modalHTML.style.display = 'none';
+
+          // Si se selecciona cualquier boton excepto Volver, proceder
+          if (value.value !== 'back') {
+            document.querySelector('#rut').value = value.value;
+            // TE ODIO FONASA
+            document.querySelector('#rut').dispatchEvent(new Event('blur', { bubbles: true }));
+          }
+        };
+      });
+
+      // Inyectar Modal
       document.querySelector('body').append(modalHTML);
     }
-    */
   }
-  /*
-    WIP>
-  */
 
   // Aplicar RUT si se llama desde el Background
   // (Solo aplica en la Fase 1)

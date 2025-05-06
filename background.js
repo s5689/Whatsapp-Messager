@@ -195,8 +195,23 @@ chrome.runtime.onMessage.addListener((e, idk, resp) => {
       // Si no hay paginas de Fonasa abiertas, abrir una nueva
       if (foundFonasa.length === 0) {
         chrome.tabs.create({ url: 'https://directo4.bonoelectronico.cl/login.php' }, (tab) => {
-          // preparar Fonasa para insercion de RUT
-          fonasaRUT = { id: tab.id, rut: e.payload };
+          // Detectar cuando la pestaña este cargada
+          chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
+            // Al estar lista, proceder.
+            if (tabId === tab.id && changeInfo.status === 'complete') {
+              chrome.tabs.onUpdated.removeListener(listener);
+
+              // preparar Fonasa para insercion de RUT
+              fonasaRUT = { id: tab.id, rut: e.payload };
+
+              // Enviar peticion de FastSwitch despues de un tiempo
+              setTimeout(() => {
+                chrome.tabs.sendMessage(tab.id, {
+                  msg: 'checkCurrentFonasa',
+                });
+              }, 750);
+            }
+          });
         });
       }
       // Si hay 1 pagina de Fonasa, cambiar pestaña & comprobar estado de Fonasa
