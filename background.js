@@ -181,6 +181,7 @@ chrome.runtime.onMessage.addListener((e, idk, resp) => {
         // Al encontrar la pestaña actual (Reservo), guardar su ID
         if (value.active) {
           currentID = value.id;
+          reservoVentaID = value.id;
         }
       });
 
@@ -195,23 +196,8 @@ chrome.runtime.onMessage.addListener((e, idk, resp) => {
       // Si no hay paginas de Fonasa abiertas, abrir una nueva
       if (foundFonasa.length === 0) {
         chrome.tabs.create({ url: 'https://directo4.bonoelectronico.cl/login.php' }, (tab) => {
-          // Detectar cuando la pestaña este cargada
-          chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
-            // Al estar lista, proceder.
-            if (tabId === tab.id && changeInfo.status === 'complete') {
-              chrome.tabs.onUpdated.removeListener(listener);
-
-              // preparar Fonasa para insercion de RUT
-              fonasaRUT = { id: tab.id, rut: e.payload };
-
-              // Enviar peticion de FastSwitch despues de un tiempo
-              setTimeout(() => {
-                chrome.tabs.sendMessage(tab.id, {
-                  msg: 'checkCurrentFonasa',
-                });
-              }, 750);
-            }
-          });
+          // Asignar ID de pestaña de Fonasa y el RUT a enviar para la Fase 1
+          fonasaRUT = { id: tab.id, rut: e.payload };
         });
       }
       // Si hay 1 pagina de Fonasa, cambiar pestaña & comprobar estado de Fonasa
@@ -224,8 +210,6 @@ chrome.runtime.onMessage.addListener((e, idk, resp) => {
         // preparar Fonasa para insercion de RUT
         fonasaRUT = { id: foundFonasa[0], rut: e.payload };
       }
-
-      reservoVentaID = currentID;
     });
   }
 
@@ -261,20 +245,41 @@ chrome.runtime.onMessage.addListener((e, idk, resp) => {
     fonasaRUT = null;
   }
 
-  // Recibir llamada de la Fase 3 para autocompleta venta fonasa en Reservo
+  // Recibir llamada de la Fase 3 para autocompletar venta Fonasa en Reservo
   if (e.msg === 'backgroundAutocompleteVenta') {
-    // Si existe el ID de venta de reservo, proceder
-    if (reservoVentaID !== null) {
+    innerTry();
+
+    async function innerTry() {
+      try {
+        // Si existe el ID de venta de reservo, proceder
+        await chrome.tabs.update(reservoVentaID, { active: true });
+        await chrome.tabs.sendMessage(reservoVentaID, {
+          msg: 'setAutocompleteVenta',
+          payload: e.payload,
+        });
+      } catch (e) {
+        // Si no existe el ID de venta (se selecciono el boton sin proceder desde reservo), enviar error
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        const currentID = tabs[0].id;
+
+        chrome.tabs.sendMessage(currentID, {
+          msg: 'autocompleteError',
+        });
+
+        reservoVentaID = null;
+      }
+    }
+
+    /*
+    try {
+      // Si existe el ID de venta de reservo, proceder
       chrome.tabs.update(reservoVentaID, { active: true });
       chrome.tabs.sendMessage(reservoVentaID, {
         msg: 'setAutocompleteVenta',
         payload: e.payload,
       });
-
-      reservoVentaID = null;
-    }
-    // Si no existe el ID de venta (se selecciono el boton sin proceder desde reservo), enviar error
-    else {
+    } catch (e) {
+      // Si no existe el ID de venta (se selecciono el boton sin proceder desde reservo), enviar error
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const currentID = tabs[0].id;
 
@@ -282,7 +287,10 @@ chrome.runtime.onMessage.addListener((e, idk, resp) => {
           msg: 'autocompleteError',
         });
       });
+
+      reservoVentaID = null;
     }
+    */
   }
 });
 
