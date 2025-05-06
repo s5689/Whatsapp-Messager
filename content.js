@@ -167,11 +167,16 @@ chrome.runtime.onMessage.addListener((e) => {
     document.querySelector('#payment-type-modal').style.display = 'block';
   }
 
-  // Emitir error de peticion de Autocompletar sin ID de reservo
-  if (e.msg === 'autocompleteError') {
+  // Emitir error de multiples ventanas de Venta de Reservo
+  if (e.msg === 'multiVentaError') {
     alert(
-      'Debe procesar el pago de Fonasa desde la venta de Reservo (El boton al lado del RUT) para poder autocompletar los campos.'
+      'Hay varias pestañas de Venta Abiertas.\nSolo mantenga abierta la del cliente actual por favor.'
     );
+  }
+
+  // Emitir error de peticion de Autocompletar sin ninguna pestaña de Venta abierta
+  if (e.msg === 'autocompleteError') {
+    alert('Debe tener abierta la pestaña de Venta en reservo para poder autorellenar los campos.');
   }
 });
 
