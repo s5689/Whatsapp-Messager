@@ -288,6 +288,9 @@ try {
   new MutationObserver((e) => {
     // Asegurar que se trata de registrar cliente y no cliente registrado
     if (e.length !== 1 && !modalState) {
+      // Preparar opciones de organizacion de nombre
+      buildNameSorter();
+
       // Preparar boton de comprobar rut al agregar cliente
       buildRutButtonCheck();
     }
@@ -297,7 +300,7 @@ try {
     POSIBLE MEJORA:
     Basar el resumen de citas en base al listado de citas
       > Crear un boton que abra un modal que contenga la info
-  */
+      */
   // De resumen de Citas
   document.querySelector('#iframeregistroconfirmacion').addEventListener('load', () => {
     const iframeDocument = document.querySelector('#iframeregistroconfirmacion').contentDocument;
@@ -453,6 +456,99 @@ try {
     }
   });
 } catch (e) {}
+
+// EN DESARROLLO
+// Inyectar Resumen del dia (solo en agenda)
+if (document.location.href.includes('reservo.cl/appointment')) {
+  // buildResumenModal();
+  // buildResumenButton();
+
+  function buildResumenModal() {
+    const modalHTML = document.createElement('div');
+
+    const css = `
+      <style>
+        #resumen-modal {
+          /* display: none; */
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+
+          margin: 0;
+          padding: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+
+          z-index: 999999999999;
+        }
+
+        #resumen-modal-container {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 80%;
+          height: 80%;
+          transform: translate(-50%, -50%);
+
+          padding: 1rem;
+          background-color: white;
+          border: 1px solid rgba(0, 0, 0, 0.3);
+          border-radius: 1rem;
+        }
+
+        #resumen-modal-header {
+          padding: 0 1rem 1rem 1rem;
+          border-bottom: 1px solid black
+        }
+
+        #resumen-modal-body {
+          padding-top: 1rem;
+
+          overflow: scroll;
+        }
+
+        #resumen-modal-innerBody {
+          width: 100%;
+          height: 100%;
+
+          background-color: red;
+        }
+      </style>
+    `;
+
+    modalHTML.id = 'resumen-modal';
+    modalHTML.innerHTML = `
+      ${css}
+      <div id="resumen-modal-container">
+        <div id="resumen-modal-header">
+          <h1>Resumen del Dia</h1>
+        </div>
+        
+        <div id="resumen-modal-body">
+          <div id="resumen-modal-innerBody"></div>
+        </div>
+      </div>
+    `;
+
+    document.querySelector('body').append(modalHTML);
+  }
+
+  function buildResumenButton() {
+    const motherButton = document.querySelector('#barra_agendas a:last-child');
+    const resumenButton = motherButton.cloneNode(true);
+
+    resumenButton.href = '';
+    resumenButton.querySelector('span').innerHTML = 'Resumen del Dia';
+    resumenButton.querySelectorAll('img').forEach((value) => value.remove());
+    resumenButton.onclick = (e) => e.preventDefault();
+    resumenButton.addEventListener('click', () => {
+      document.querySelector('#resumen-modal').style.display = 'block';
+    });
+
+    motherButton.parentElement.append(resumenButton);
+  }
+}
 
 // Detectar URL de la pagina. (Rutificador)
 if (window.location.href === 'https://www.nombrerutyfirma.com/') {
@@ -677,6 +773,57 @@ function buildInfoViewer() {
   }
 }
 
+// Crear estructura de organizador de Nombres
+function buildNameSorter() {
+  // Limpiar espacio y preparar representacion de datos
+  try {
+    // Solo si es la primera vez abriendo una planilla
+    const nameSorterHTML = document.createElement('div');
+    const parentHTML = document.querySelector('#createAppt #div_alertas').parentElement;
+
+    parentHTML.removeChild(parentHTML.children[2]);
+    parentHTML.removeChild(parentHTML.children[1]);
+
+    nameSorterHTML.innerHTML += `
+      <style>
+        #nameSorterParent {
+          user-select: none;
+        }
+
+        #nameSorterParent #nameSorter {
+          display: flex;
+          flex-wrap: wrap;
+
+          margin-left: 5.5rem;
+          cursor: pointer;
+        }
+          
+        #nameSorterParent #nameSorter span {
+          padding: 6px;
+          margin: 0 0.7rem 0.7rem 0;
+
+          border: 1px solid #cccccc;
+          border-radius: 0.5rem;
+          background-color: aliceblue;
+        }
+
+        #nameSorterParent #nameSorter span:hover {
+          background-color: antiquewhite;
+        }
+      </style>
+
+      <div id="nameSorter">
+      </div>
+    `;
+
+    parentHTML.id = 'nameSorterParent';
+    parentHTML.append(nameSorterHTML);
+  } catch (e) {
+    // De no ser la primera vez, limpiar nameSorter
+    document.querySelector('#nameSorter').innerHTML = '';
+  }
+}
+
 // Procesar datos y aplicar cambios
 function infoViewer() {
   const rutHTML = document.querySelector('#infoViewer-RUT');
@@ -708,37 +855,8 @@ function infoViewer() {
   } else if (clientData.fullName === 'Solicitud Rechazada') {
     nameHTML.children[0].setAttribute('color', '');
   } else {
-    const slicedName = [];
+    const slicedName = nameSlicer(clientData.name);
     let ok = true;
-    let k = 0;
-
-    // Separar nombre de Reservo en partes de un array
-    for (const e of clientData.name) {
-      if (e !== ' ') {
-        const isSpecial = vocalArray.findIndex((value) => value === e);
-        let tempChar;
-
-        if (isSpecial !== -1) {
-          // Si el caracter es especial, convertir en normal
-          if (isSpecial >= 0 && isSpecial <= 9) tempChar = 'a';
-          if (isSpecial >= 10 && isSpecial <= 16) tempChar = 'e';
-          if (isSpecial >= 17 && isSpecial <= 22) tempChar = 'i';
-          if (isSpecial >= 23 && isSpecial <= 30) tempChar = 'o';
-          if (isSpecial >= 31 && isSpecial <= 38) tempChar = 'u';
-        } else {
-          // Si no es el caso, proceder normalmente
-          tempChar = e;
-        }
-
-        if (typeof slicedName[k] === 'undefined') {
-          slicedName[k] = tempChar;
-        } else {
-          slicedName[k] += tempChar;
-        }
-      } else {
-        k++;
-      }
-    }
 
     slicedName.forEach((value) => {
       if (!clientData.fullName.toLowerCase().includes(value)) {
@@ -848,10 +966,128 @@ function buildRutButtonCheck() {
   }
 }
 
-// Presentar rut en casilla de Comentarios al registrar cliente
+// Presentar rut en casilla de Comentarios al registrar cliente & mostrar nameSorter
 function checkViewer(e) {
   const commentsHTML = document.querySelector('#id_comentario');
   commentsHTML.value = e;
+
+  // Si existe el nombre, preparar nameSorter
+  if (e !== 'No Registrado' && e !== 'Solicitud Rechazada') {
+    const nameHTML = document.querySelector('#id_name');
+    const last0HTML = document.querySelector('#id_app_paterno');
+    const last1HTML = document.querySelector('#id_app_materno');
+    const nameSorterHTML = document.querySelector('#nameSorter');
+    const slicedName = nameSlicer(e);
+    const nameOrder = {
+      2: [
+        { name: '1', last0: '2', last1: '' },
+        { name: '2', last0: '1', last1: '' },
+      ],
+      3: [
+        { name: '3', last0: '1', last1: '2' },
+        { name: '2', last0: '3', last1: '1' },
+      ],
+      4: [
+        { name: '34', last0: '1', last1: '2' },
+        { name: '234', last0: '1', last1: '' },
+        { name: '4', last0: '123', last1: '' },
+      ],
+      5: [
+        { name: '345', last0: '1', last1: '2' },
+        { name: '2345', last0: '1', last1: '' },
+        { name: '45', last0: '123', last1: '' },
+      ],
+      6: [
+        { name: '3456', last0: '1', last1: '2' },
+        { name: '56', last0: '123', last1: '4' },
+        { name: '56', last0: '1', last1: '234' },
+      ],
+    };
+
+    // Recorrer lista de Organizacion segun el tamaño del nombre
+    nameOrder[`${slicedName.length}`].forEach((value) => {
+      // Generar un botn por cada elemento en el array
+      const currentHTML = document.createElement('span');
+      currentHTML.innerHTML = value.name + value.last0 + value.last1;
+
+      // Asignar eventos
+      currentHTML.addEventListener('mouseover', () => {
+        applyName(value);
+      });
+      currentHTML.addEventListener('mouseout', () => {
+        nameHTML.value = '';
+        last0HTML.value = '';
+        last1HTML.value = '';
+      });
+      currentHTML.addEventListener('click', () => {
+        applyName(value);
+        commentsHTML.value = '';
+        nameSorterHTML.innerHTML = '';
+      });
+
+      // Inyectar en el modal
+      nameSorterHTML.append(currentHTML);
+
+      function applyName(e) {
+        toApply(e.name, nameHTML);
+        toApply(e.last0, last0HTML);
+        toApply(e.last1, last1HTML);
+
+        // Armar nombre segun el slicedName
+        function toApply(name, html) {
+          let k = 0;
+          let text = '';
+
+          for (const valua of name) {
+            if (k !== 0) {
+              text += ' ';
+            }
+
+            text += slicedName[valua - 1];
+            k++;
+          }
+
+          html.value = text;
+        }
+      }
+    });
+  }
+}
+
+// Divisor de nombres a Array
+function nameSlicer(name) {
+  const slicedName = [];
+  let k = 0;
+
+  // Separar nombre en partes de un array
+  for (const e of name) {
+    if (e !== ' ') {
+      const isSpecial = vocalArray.findIndex((value) => value === e);
+      let tempChar;
+
+      if (isSpecial !== -1) {
+        // Si el caracter es especial, convertir en normal
+        if (isSpecial >= 0 && isSpecial <= 9) tempChar = 'a';
+        if (isSpecial >= 10 && isSpecial <= 16) tempChar = 'e';
+        if (isSpecial >= 17 && isSpecial <= 22) tempChar = 'i';
+        if (isSpecial >= 23 && isSpecial <= 30) tempChar = 'o';
+        if (isSpecial >= 31 && isSpecial <= 38) tempChar = 'u';
+      } else {
+        // Si no es el caso, proceder normalmente
+        tempChar = e;
+      }
+
+      if (typeof slicedName[k] === 'undefined') {
+        slicedName[k] = tempChar;
+      } else {
+        slicedName[k] += tempChar;
+      }
+    } else {
+      k++;
+    }
+  }
+
+  return slicedName;
 }
 
 /*
@@ -1261,7 +1497,7 @@ if (document.title.includes('Ingreso - Bono Electrónico - Venta Directa')) {
 
     <div id="fs-container">
       <button value="28203131-0">Yo</button>
-      <button value="">Zulisss</button>
+      <button value="25488889-3">Zulisss</button>
       <button value="26200247-0">Isaisaisa</button>
       <br />
       <button value="back">Volver</button>
@@ -1415,6 +1651,126 @@ chrome.runtime.sendMessage({
 });
 */
 
+// 18224442-2
 // 3223122-5
 // document.querySelector("#tbodyResultado_0").innerHTML !== ""
 // btnVolverApp
+
+/*
+  EXPORTADOR PARA DAYIREE
+
+*/
+// localStorage.setItem("dayireCosa", JSON.stringify();
+/*
+const dayireList = JSON.parse(localStorage.getItem('dayireCosa'));
+const searchBar = document.querySelector('#id_buscar');
+const searchBarForm = document.querySelector('#filtro');
+
+async function run() {
+  let k = 0;
+
+  while (k < dayireList.length) {
+    const currentItem = dayireList[k];
+
+    if (searchBar.value !== currentItem.nombre) {
+      if (currentItem.telefono === '') {
+        searchBar.value = currentItem.nombre;
+        searchBarForm.submit();
+
+        await sleep(500);
+      }
+    } else {
+      const foundNumbers = document.querySelectorAll('.priority-7');
+
+      if (foundNumbers.length === 2) {
+        dayireList[k].telefono = foundNumbers[1].innerHTML;
+        localStorage.setItem('dayireCosa', JSON.stringify(dayireList));
+      } else {
+        alert('el nombre no es unico o no existe.');
+        break;
+      }
+    }
+
+    k++;
+  }
+}
+
+async function sleep(e) {
+  return new Promise((resolve) => setTimeout(() => resolve(), e));
+}
+
+run();
+console.log(dayireList);
+
+/*
+  dayireList.forEach(async (value, k) => {
+    if (searchBar.value !== value.nombre) {
+      if (value.telefono === '') {
+        searchBar.value = value.nombre;
+        searchBarForm.submit();
+
+        await sleep(500);
+      }
+    } else {
+      const foundNumbers = document.querySelectorAll('.priority-7');
+
+      if (foundNumbers.length === 2) {
+        dayireList[k].telefono = foundNumbers[1].innerHTML;
+        localStorage.setItem('dayireCosa', JSON.stringify(dayireList));
+      } else {
+        alert('el nombre no es unico o no existe.');
+      }
+    }
+  });
+  */
+
+/*
+localStorage.setItem("dayireCosa", JSON.stringify([
+    { nombre: "Alan José Tapia Maturana", telefono: "" },
+    { nombre: "Ana Maria Ibacache Araya", telefono: "" },
+    { nombre: "Carla Francisca Ester Chavez Aguilar", telefono: "" },
+    { nombre: "Carlos Alberto Bruna Arancibia", telefono: "" },
+    { nombre: "Carolina Paz Irrazabal Toloza", telefono: "" },
+    { nombre: "Catalina Anais Collins Olivares", telefono: "" },
+    { nombre: "Cecilia Andrea Campos Flores", telefono: "" },
+    { nombre: "Cynthia Andrea Olivares Valencia", telefono: "" },
+    { nombre: "Daniela Del Carmen Merino Mencias", telefono: "" },
+    { nombre: "Daniela Rebusnante Delgado", telefono: "" },
+    { nombre: "Edison Felipe Arredondo Hernandez", telefono: "" },
+    { nombre: "Elizabeth Ivette Narvaez Basaez", telefono: "" },
+    { nombre: "Fabiola Maritza Manzano Segura", telefono: "" },
+    { nombre: "Franchesca De Los Angeles Gallardo Torres", telefono: "" },
+    { nombre: "Gabriel Antonio Donoso Aguilar", telefono: "" },
+    { nombre: "Joel Ibacache Valdivia", telefono: "" },
+    { nombre: "Jose David Gutierrez Mery", telefono: "" },
+    { nombre: "Liliana Andrea Reinoso Aravena", telefono: "" },
+    { nombre: "Macarena Del Carmen Herrera Olmos", telefono: "" },
+    { nombre: "Manuel Antonio Galarce Sanchez", telefono: "" },
+    { nombre: "Marcela Del Pilar Gonzalez Mondaca", telefono: "" },
+    { nombre: "Margarita Isabel Olave Queupan", telefono: "" },
+    { nombre: "Maria Alejandra Muñoz", telefono: "" },
+    { nombre: "Maria Farias Leiva", telefono: "" },
+    { nombre: "Mariela O'Neil Peña Villarroel", telefono: "" },
+    { nombre: "Marioli Tapia", telefono: "" },
+    { nombre: "Marisel Ester Sepulveda Guzman", telefono: "" },
+    { nombre: "Marjorie Bustamante Sazo", telefono: "" },
+    { nombre: "Matías Fuenzalida San Martín", telefono: "" },
+    { nombre: "Matias Julian Ponce Irrazabal", telefono: "" },
+    { nombre: "Mirtha Graciela Ponce Lopez", telefono: "" },
+    { nombre: "Natacha Carolina Silva Savedra", telefono: "" },
+    { nombre: "Nataly Fuentes Serrano", telefono: "" },
+    { nombre: "Ondina Del Carmen Villarroel Delgado", telefono: "" },
+    { nombre: "Paola Andrea Reyes Astudillo", telefono: "" },
+    { nombre: "Paola Isabel Camacho Hurtado", telefono: "" },
+    { nombre: "Paola Noemi Martinez Vargas", telefono: "" },
+    { nombre: "Paula Elizabeth Saavedra Ibacache", telefono: "" },
+    { nombre: "Rosario Antonia Varas Donoso", telefono: "" },
+    { nombre: "Susan Ramirez Moraga", telefono: "" },
+    { nombre: "Tamara Cortez Acosta", telefono: "" },
+    { nombre: "Tamara Patricia Olivares Narvaez", telefono: "" },
+    { nombre: "Valentina Marcela Norambuena Figueroa", telefono: "" },
+    { nombre: "Viviana Milena Del Rosario Alfaro", telefono: "" },
+    { nombre: "Ximena Pilar Chacana Olmos", telefono: "" },
+    { nombre: "Yeniffer Rivillo González", telefono: "" }
+]));
+*/
