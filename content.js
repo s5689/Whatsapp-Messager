@@ -711,6 +711,10 @@ function buildInfoViewer() {
           width: 16px;
         }
 
+        .infoViewer_color[color="blue"] {
+          background-color: lightblue;
+        }
+
         .infoViewer_color[color="green"] {
           background-color: lightgreen;
         }
@@ -731,22 +735,22 @@ function buildInfoViewer() {
       <table id="infoViewer">
         <tbody>
           <tr id="infoViewer-RUT">
-            <td class="infoViewer_color" color="orange"></td>
+            <td class="infoViewer_color" color="blue"></td>
             <td class="infoViewer_text">RUT</td>
           </tr>
 
           <tr id="infoViewer-Name">
-            <td class="infoViewer_color" color="orange"></td>
+            <td class="infoViewer_color" color="blue"></td>
             <td class="infoViewer_text">Nombre</td>
           </tr>
 
           <tr id="infoViewer-Birthday">
-            <td class="infoViewer_color" color="orange"></td>
+            <td class="infoViewer_color" color="blue"></td>
             <td class="infoViewer_text">Fecha de Nacimiento</td>
           </tr>
 
           <tr id="infoViewer-Double">
-            <td class="infoViewer_color" color="orange"></td>
+            <td class="infoViewer_color" color="blue"></td>
             <td class="infoViewer_text">Duplicado</td>
           </tr>
         </tbody>
@@ -759,21 +763,19 @@ function buildInfoViewer() {
     // De no ser la primera vez, devolver infoViewer a su estado por defecto
     document.querySelector('#infoViewer-RUT').onclick = '';
     document.querySelector('#infoViewer-RUT').removeAttribute('title');
-    document.querySelector('#infoViewer-RUT .infoViewer_color').setAttribute('color', 'orange');
+    document.querySelector('#infoViewer-RUT .infoViewer_color').setAttribute('color', 'blue');
 
     document.querySelector('#infoViewer-Name').onclick = '';
     document.querySelector('#infoViewer-Name').removeAttribute('title');
-    document.querySelector('#infoViewer-Name .infoViewer_color').setAttribute('color', 'orange');
+    document.querySelector('#infoViewer-Name .infoViewer_color').setAttribute('color', 'blue');
 
     document.querySelector('#infoViewer-Birthday').onclick = '';
     document.querySelector('#infoViewer-Birthday').removeAttribute('title');
-    document
-      .querySelector('#infoViewer-Birthday .infoViewer_color')
-      .setAttribute('color', 'orange');
+    document.querySelector('#infoViewer-Birthday .infoViewer_color').setAttribute('color', 'blue');
 
     document.querySelector('#infoViewer-Double').onclick = '';
     document.querySelector('#infoViewer-Double').removeAttribute('title');
-    document.querySelector('#infoViewer-Double .infoViewer_color').setAttribute('color', 'orange');
+    document.querySelector('#infoViewer-Double .infoViewer_color').setAttribute('color', 'blue');
   }
 }
 
@@ -1012,53 +1014,67 @@ function checkViewer(e) {
       ],
     };
 
-    // Recorrer lista de Organizacion segun el tamaño del nombre
-    nameOrder[`${slicedName.length}`].forEach((value) => {
-      // Generar un botn por cada elemento en el array
-      const currentHTML = document.createElement('span');
-      currentHTML.innerHTML = value.name + value.last0 + value.last1;
+    // Reiniciar nameSorter
+    nameSorterHTML.innerHTML = '';
 
-      // Asignar eventos
-      currentHTML.addEventListener('mouseover', () => {
-        applyName(value);
+    // Si el tamaño del nombre existe en la lista, proceder
+    if (slicedName.length in nameOrder) {
+      // Recorrer lista de Organizacion segun el tamaño del nombre
+      nameOrder[`${slicedName.length}`].forEach((value) => {
+        // Generar un boton por cada elemento en el array
+        const currentHTML = document.createElement('span');
+        currentHTML.innerHTML = value.name + value.last0 + value.last1;
+
+        // Asignar eventos
+        currentHTML.addEventListener('mouseover', () => {
+          applyName(value);
+        });
+        currentHTML.addEventListener('mouseout', () => {
+          nameHTML.value = '';
+          last0HTML.value = '';
+          last1HTML.value = '';
+        });
+        currentHTML.addEventListener('click', () => {
+          applyName(value);
+          commentsHTML.value = '';
+          nameSorterHTML.innerHTML = '';
+        });
+
+        // Inyectar en el modal
+        nameSorterHTML.append(currentHTML);
+
+        function applyName(e) {
+          toApply(e.name, nameHTML);
+          toApply(e.last0, last0HTML);
+          toApply(e.last1, last1HTML);
+
+          // Armar nombre segun el slicedName
+          function toApply(name, html) {
+            let k = 0;
+            let text = '';
+
+            for (const valua of name) {
+              if (k !== 0) {
+                text += ' ';
+              }
+
+              text += slicedName[valua - 1];
+              k++;
+            }
+
+            html.value = text;
+          }
+        }
       });
-      currentHTML.addEventListener('mouseout', () => {
-        nameHTML.value = '';
-        last0HTML.value = '';
-        last1HTML.value = '';
-      });
-      currentHTML.addEventListener('click', () => {
-        applyName(value);
-        commentsHTML.value = '';
-        nameSorterHTML.innerHTML = '';
-      });
+    }
+    // Caso contrario, informar de nombre incompatible
+    else {
+      const currentHTML = document.createElement('span');
+      currentHTML.innerHTML = 'Nombre Incompatible.';
 
       // Inyectar en el modal
       nameSorterHTML.append(currentHTML);
-
-      function applyName(e) {
-        toApply(e.name, nameHTML);
-        toApply(e.last0, last0HTML);
-        toApply(e.last1, last1HTML);
-
-        // Armar nombre segun el slicedName
-        function toApply(name, html) {
-          let k = 0;
-          let text = '';
-
-          for (const valua of name) {
-            if (k !== 0) {
-              text += ' ';
-            }
-
-            text += slicedName[valua - 1];
-            k++;
-          }
-
-          html.value = text;
-        }
-      }
-    });
+    }
   }
 }
 
