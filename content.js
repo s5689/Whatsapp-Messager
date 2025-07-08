@@ -108,7 +108,7 @@ chrome.runtime.onMessage.addListener((e) => {
     // Si la respuesta proviene de un cliente ya registrado
     if (modalState) {
       clientData.fullName = e.payload;
-      infoViewer();
+      infoViewerName();
     }
     // Si la respuesta proviene de un cliente registrandose
     else {
@@ -264,7 +264,10 @@ try {
               // Guardar la cantidad de usuarios encontrados con el rut
               clientData.duplicated = data;
 
-              // Una vez terminado de obtener todos los datos, enviar rut al background
+              // Una vez terminado de obtener todos los datos, representar
+              infoViewer();
+
+              // Y enviar rut al background
               chrome.runtime.sendMessage({
                 msg: 'rutificadorSet',
                 payload: format(clientData.Rut),
@@ -280,6 +283,7 @@ try {
         e[0].removedNodes[0].classList.length === 1
       ) {
         modalState = false;
+        chrome.runtime.sendMessage({ msg: 'rutificadorUnset' });
       }
     }
   }).observe(document.getElementById('myModal3').parentElement, { childList: true });
@@ -827,7 +831,6 @@ function buildNameSorter() {
 // Procesar datos y aplicar cambios
 function infoViewer() {
   const rutHTML = document.querySelector('#infoViewer-RUT');
-  const nameHTML = document.querySelector('#infoViewer-Name');
   const birthdayHTML = document.querySelector('#infoViewer-Birthday');
   const doubleHTML = document.querySelector('#infoViewer-Double');
 
@@ -838,37 +841,6 @@ function infoViewer() {
   } else {
     rutHTML.setAttribute('title', format(clientData.Rut));
     rutHTML.children[0].setAttribute('color', 'green');
-  }
-
-  // Comprobar Nombre
-  nameHTML.setAttribute('title', clientData.fullName);
-  nameHTML.onclick = () => {
-    // Solo copiar si el nombre existe
-    if (clientData.fullName !== 'No Registrado' && clientData.fullName !== 'Solicitud Rechazada')
-      navigator.clipboard.writeText(clientData.fullName).then(() => {
-        alert(`Nombre copiado al portapapeles:\n\n${clientData.fullName}`);
-      });
-  };
-
-  if (clientData.fullName === 'No Registrado') {
-    nameHTML.children[0].setAttribute('color', 'orange');
-  } else if (clientData.fullName === 'Solicitud Rechazada') {
-    nameHTML.children[0].setAttribute('color', '');
-  } else {
-    const slicedName = nameSlicer(clientData.name);
-    let ok = true;
-
-    slicedName.forEach((value) => {
-      if (!clientData.fullName.toLowerCase().includes(value)) {
-        ok = false;
-      }
-    });
-
-    if (!ok) {
-      nameHTML.children[0].setAttribute('color', 'red');
-    } else {
-      nameHTML.children[0].setAttribute('color', 'green');
-    }
   }
 
   // Comprobar Fecha de Nacimiento
@@ -903,6 +875,42 @@ function infoViewer() {
     }
   } else {
     doubleHTML.children[0].setAttribute('color', 'green');
+  }
+}
+
+// Procesar datos y aplicar cambios
+function infoViewerName() {
+  const nameHTML = document.querySelector('#infoViewer-Name');
+
+  // Comprobar Nombre
+  nameHTML.setAttribute('title', clientData.fullName);
+  nameHTML.onclick = () => {
+    // Solo copiar si el nombre existe
+    if (clientData.fullName !== 'No Registrado' && clientData.fullName !== 'Solicitud Rechazada')
+      navigator.clipboard.writeText(clientData.fullName).then(() => {
+        alert(`Nombre copiado al portapapeles:\n\n${clientData.fullName}`);
+      });
+  };
+
+  if (clientData.fullName === 'No Registrado') {
+    nameHTML.children[0].setAttribute('color', 'orange');
+  } else if (clientData.fullName === 'Solicitud Rechazada') {
+    nameHTML.children[0].setAttribute('color', '');
+  } else {
+    const slicedName = nameSlicer(clientData.name);
+    let ok = true;
+
+    slicedName.forEach((value) => {
+      if (!clientData.fullName.toLowerCase().includes(value)) {
+        ok = false;
+      }
+    });
+
+    if (!ok) {
+      nameHTML.children[0].setAttribute('color', 'red');
+    } else {
+      nameHTML.children[0].setAttribute('color', 'green');
+    }
   }
 }
 

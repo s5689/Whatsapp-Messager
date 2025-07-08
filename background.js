@@ -61,6 +61,13 @@ chrome.runtime.onMessage.addListener((e, idk, resp) => {
     );
   }
 
+  // Remover ventana de Rutificador
+  if (e.msg === 'rutificadorUnset') {
+    chrome.tabs.remove(rutificadorID);
+    rutificadorValue = null;
+    rutificadorID = null;
+  }
+
   // Llamada proveniente del rutificador al abrir la penstaña
   // (Solo entrar si el rutificador fue abierto por reservo)
   if (e.msg === 'rutificadorCall' && rutificadorValue !== null) {
