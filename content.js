@@ -1138,6 +1138,13 @@ try {
           if (value.innerHTML === 'Voucher:') {
             // Obtener el input del row
             const voucherInput = value.parentElement.querySelector('input');
+            const internalValue = localStorage.getItem('voucher');
+
+            if (internalValue !== null) {
+              voucherInput.value = internalValue;
+              voucherInput.style.backgroundColor = 'lightyellow';
+            }
+
             getCurrentVoucher(voucherInput);
           }
         });
@@ -1437,17 +1444,14 @@ function getCurrentVoucher(e) {
                 // Si ya encontro el numero del voucher actual, finalizar.
                 if (resp !== '') {
                   e.value = Number(resp) + 1;
+                  localStorage.setItem('voucher', Number(resp) + 1);
                   break;
                 }
               }
             }
           }
 
-          // Si se recorrio toda la tabla pero no hubo voucher, regresar 0.
-          if (e.value === '') {
-            e.value = 0;
-          }
-
+          e.style.backgroundColor = '';
           iframeHTML.remove();
         }
       }).observe(iframeDocument.querySelector('body'), {
