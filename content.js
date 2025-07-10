@@ -1122,33 +1122,18 @@ function nameSlicer(name) {
 try {
   // De cliente ya registrado
   new MutationObserver(() => {
-    // Obtener HTML de la tabla de pagos
-    const payHTML = document.querySelector('#tr_id_tipoPago_1').parentElement;
+    const voucherInput = getVoucherInput();
 
-    // Recorrer todos los elementos de la tabla
-    for (let k = 0; k < payHTML.children.length; k++) {
-      // Tomar ID de cada elemento en la tabla
-      const currentID = payHTML.children[k].id;
+    if (voucherInput !== null) {
+      const localResp = Number(localStorage.getItem('voucher'));
+      const internalValue = localResp !== 0 ? localResp + 1 : null;
 
-      // Comprobar de que el elemento sea el metodo de pago de Debito o Credito
-      if (currentID === 'Tarjeta_1' || currentID === 'Debito_1') {
-        // Buscar en todas las celdas del medio de pago
-        payHTML.children[k].querySelectorAll('td').forEach((value) => {
-          // Seleccionar solo el row que contiene el boucher
-          if (value.innerHTML === 'Voucher:') {
-            // Obtener el input del row
-            const voucherInput = value.parentElement.querySelector('input');
-            const internalValue = localStorage.getItem('voucher');
-
-            if (internalValue !== null) {
-              voucherInput.value = internalValue;
-              voucherInput.style.backgroundColor = 'lightyellow';
-            }
-
-            getCurrentVoucher(voucherInput);
-          }
-        });
+      if (internalValue !== null) {
+        voucherInput.value = internalValue;
       }
+
+      voucherInput.style.backgroundColor = 'lightyellow';
+      getCurrentVoucher(voucherInput);
     }
   }).observe(document.querySelector('#tr_id_tipoPago_1').parentElement, { childList: true });
 } catch (e) {}
@@ -1158,6 +1143,20 @@ try {
 try {
   // Inyectar solo si se encuentra en el modulo de ventas
   if (document.title === 'Venta') {
+    /*
+      Guardar Vaucher en el localStorage
+
+    */
+    // Al presionar pagar
+    document.querySelector('#confirmar').addEventListener('click', () => {
+      const voucherInput = getVoucherInput();
+
+      // Setear solo si el metodo de pago es Debito o Credito
+      if (voucherInput !== null) {
+        localStorage.setItem('voucher', voucherInput.value);
+      }
+    });
+
     /*
       Boton Fonasa
 
@@ -1444,7 +1443,8 @@ function getCurrentVoucher(e) {
                 // Si ya encontro el numero del voucher actual, finalizar.
                 if (resp !== '') {
                   e.value = Number(resp) + 1;
-                  localStorage.setItem('voucher', Number(resp) + 1);
+
+                  localStorage.setItem('voucher', Number(resp));
                   break;
                 }
               }
@@ -1463,6 +1463,33 @@ function getCurrentVoucher(e) {
 
   // Crear Iframe para proceder con todo el codigo
   document.querySelector('body').append(iframeHTML);
+}
+
+// Obtener input del Voucher
+function getVoucherInput() {
+  // Obtener HTML de la tabla de pagos
+  const payHTML = document.querySelector('#tr_id_tipoPago_1').parentElement;
+  let foundInput = null;
+
+  // Recorrer todos los elementos de la tabla
+  for (let k = 0; k < payHTML.children.length; k++) {
+    // Tomar ID de cada elemento en la tabla
+    const currentID = payHTML.children[k].id;
+
+    // Comprobar de que el elemento sea el metodo de pago de Debito o Credito
+    if (currentID === 'Tarjeta_1' || currentID === 'Debito_1') {
+      // Buscar en todas las celdas del medio de pago
+      payHTML.children[k].querySelectorAll('td').forEach((value) => {
+        // Seleccionar solo el row que contiene el voucher
+        if (value.innerHTML === 'Voucher:') {
+          // Obtener el input del row
+          foundInput = value.parentElement.querySelector('input');
+        }
+      });
+    }
+  }
+
+  return foundInput;
 }
 
 /*
