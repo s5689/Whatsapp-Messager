@@ -1154,6 +1154,7 @@ try {
       // Setear solo si el metodo de pago es Debito o Credito
       if (voucherInput !== null) {
         localStorage.setItem('voucher', voucherInput.value);
+        document.querySelector('html').setAttribute('paid', 'true');
       }
     });
 
@@ -1444,7 +1445,10 @@ function getCurrentVoucher(e) {
                 if (resp !== '') {
                   e.value = Number(resp) + 1;
 
-                  localStorage.setItem('voucher', Number(resp));
+                  // Evitar reemplazar el valor interno si el pago ya se efectuo
+                  if (document.querySelector('html').getAttribute('paid') === null) {
+                    localStorage.setItem('voucher', Number(resp));
+                  }
                   break;
                 }
               }
