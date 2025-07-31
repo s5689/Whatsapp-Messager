@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Whatsapp Messager",
-  "version": "5.5.4.1",
+  "version": "6.0.0.0",
   "description": "Que pereza escribir todo a mano zzz...",
   "action": {
     "default_popup": "popup.html"
@@ -13,7 +13,8 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["jquery.js", "jquery-ui.js", "content.js"],
+      "css": ["jquery-ui.css"]
     }
   ],
   "permissions": ["activeTab", "tabs", "scripting", "contextMenus"],

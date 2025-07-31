@@ -461,19 +461,109 @@ try {
   });
 } catch (e) {}
 
-// EN DESARROLLO
 // Inyectar Resumen del dia (solo en agenda)
 if (document.location.href.includes('reservo.cl/appointment')) {
-  // buildResumenModal();
-  // buildResumenButton();
+  const iframeState = {
+    html: document.createElement('iframe'),
+    isReady: false,
+    callback() {
+      this.init();
+    },
+
+    // Obtener HTMLs internos del iframe
+    init() {
+      this.document = this.html.contentDocument;
+      this.dateHTML = this.document.querySelector('#date');
+      this.dateSubmit = this.document.querySelector('[type=submit]');
+    },
+    document: null,
+    dateHTML: null,
+    dateSubmit: null,
+  };
+
+  datePickerSettings();
+  buildResumenModal();
+  buildResumenButton();
+
+  function datePickerSettings() {
+    $.datepicker.setDefaults({
+      closeText: 'Cerrar',
+      prevText: 'Anterior',
+      nextText: 'Siguiente',
+      currentText: 'Hoy',
+      monthNames: [
+        'Enero',
+        'Febrero',
+        'Marzo',
+        'Abril',
+        'Mayo',
+        'Junio',
+        'Julio',
+        'Agosto',
+        'Septiembre',
+        'Octubre',
+        'Noviembre',
+        'Diciembre',
+      ],
+      monthNamesShort: [
+        'Ene',
+        'Feb',
+        'Mar',
+        'Abr',
+        'May',
+        'Jun',
+        'Jul',
+        'Ago',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dic',
+      ],
+      dayNames: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
+      dayNamesShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+      dayNamesMin: ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'],
+      weekHeader: 'Sm',
+      dateFormat: 'dd/mm/yy',
+      firstDay: 1,
+      isRTL: false,
+      showMonthAfterYear: false,
+      yearSuffix: '',
+    });
+  }
+
+  function dateFormat(e) {
+    const day = String(e.getDate()).padStart(2, '0');
+    const month = String(e.getMonth() + 1).padStart(2, '0');
+    const year = e.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
+
+  function datePickerFormat(e) {
+    const weekDays = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const dateArray = e.split('-');
+    const tempDate = new Date(dateArray[2], dateArray[1] - 1, dateArray[0]);
+    const currentWeekday = weekDays[tempDate.getDay()];
+
+    return currentWeekday;
+  }
+
+  function getDateArray(e) {
+    const dateArray = e.split('-');
+    dateArray[0] = Number(dateArray[0]);
+    dateArray[1] = Number(dateArray[1]);
+    dateArray[2] = Number(dateArray[2]);
+
+    return dateArray;
+  }
 
   function buildResumenModal() {
+    // Contruir Modal
     const modalHTML = document.createElement('div');
 
     const css = `
       <style>
         #resumen-modal {
-          /* display: none; */
+          display: none;
           position: fixed;
           top: 0;
           left: 0;
@@ -499,6 +589,8 @@ if (document.location.href.includes('reservo.cl/appointment')) {
           background-color: white;
           border: 1px solid rgba(0, 0, 0, 0.3);
           border-radius: 1rem;
+          
+          overflow: hidden;
         }
 
         #resumen-modal-header {
@@ -508,20 +600,196 @@ if (document.location.href.includes('reservo.cl/appointment')) {
 
         #resumen-modal-body {
           padding-top: 1rem;
-
-          overflow: scroll;
         }
 
         #resumen-modal-innerBody {
           width: 100%;
           height: 100%;
+        }
 
-          background-color: red;
+        #resumen-modal-innerBody #innerBody-date {
+          display: flex;
+          align-items: center;
+        }
+
+        #resumen-modal-innerBody #innerBody-date input {
+          width: 83px;
+          cursor: pointer;
+          margin-top: 10px;
+        }
+
+        #resumen-modal-innerBody #innerBody-date input:hover {
+          background-color: lightgray;
+          transition: background 200ms;
+        }
+
+        #resumen-modal-innerBody #innerBody-date button {
+          height: 28px;
+          border: 1px solid #cccccc;
+          border-radius: 5px;
+          background-color: #F0F0F0;
+          margin: 0 0.5rem 0 0.5rem;
+        }
+
+        #resumen-modal-innerBody #innerBody-date .date-controls[disabled] {
+          background-color: khaki;
+          color: black;
+          
+          cursor: default;
+          transition: background 200ms;
+        }
+
+        #resumen-modal-innerBody #innerBody-date button:hover {
+          background-color: lightgray;
+          transition: background 200ms;
+        }
+
+        #resumen-modal-innerBody #innerBody-date span {
+          font-weight: bold;
+          font-size: 24px;
+        }
+
+        #resumen-modal-innerBody #innerBody-date  {
+          font-weight: bold;
+          font-size: 24px;
+        }
+
+        #resumen-modal-innerBody #innerBody-resumen {
+          display: flex;
+          font-size: large;
+
+          border: 1px outset;
+          border-radius: 1rem;
+          background-color: antiquewhite;
+          box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.2);
+          
+          margin: 1rem;
+        }
+
+        #resumen-modal-innerBody #innerBody-resumen .innerBody-resumen-div {
+          display: flex;
+          flex-direction: column;
+          width: 50%;
+
+          padding: 1rem;
+        }
+
+        #resumen-modal-innerBody #innerBody-resumen .innerBody-resumen-div tr[has-value] {
+          background-color: rgba(0,0,0,0.1);
+        }
+
+        #resumen-modal-innerBody #innerBody-resumen .innerBody-resumen-div li[has-value] {
+          font-weight: bold;
+        }
+
+        #resumen-modal-innerBody #innerBody-resumen span {
+          font-size: larger;
+          text-align: center;
+          width: 100%;
+          border-bottom: 1px solid;
+          
+          margin-bottom: 1rem;
+          padding-bottom: 0.5rem;
+        }
+
+        #resumen-modal-innerBody #innerBody-agendas {
+          font-size: large;
+          max-height: calc(347px - 1rem);
+          
+          border: 1px outset;
+          border-radius: 1rem;
+          background-color: gainsboro;
+          box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.2);
+
+          margin: 3rem 1rem 1rem 1rem;
+          padding: 1rem;
+          
+          overflow: scroll;
+          scrollbar-width: none;
+        }
+
+        #resumen-modal-innerBody #innerBody-agendas div {
+        position: fixed;
+        width: calc(100% - 6rem);
+        height: 1rem;
+
+        margin-top: -1rem;
+        background-color: gainsboro;
+        }
+
+        #resumen-modal-innerBody #innerBody-agendas table {
+          width: 100%;
+        }
+
+        #resumen-modal-innerBody #innerBody-agendas table thead {
+          position: sticky;
+          top: 0;
+          background-color: gainsboro;
+          
+          z-index: 100;
+        }
+
+        #resumen-modal-innerBody #innerBody-agendas table thead tr {
+          background-color: teal;
+          color: white;
+        }
+
+        #resumen-modal-innerBody #innerBody-agendas table th,
+        #resumen-modal-innerBody #innerBody-agendas table td {
+          padding: 0.5rem;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          overflow: hidden;
+        }
+          
+        #resumen-modal-innerBody #innerBody-agendas table tbody tr:nth-child(odd) td:nth-child(6) {
+          background-color: rgba(66, 117, 227, 0.4);
+        }
+
+        #resumen-modal-innerBody #innerBody-agendas table tbody tr:nth-child(odd) td:nth-child(7) {
+          background-color: rgba(56, 154, 92, 0.4);
+        }
+
+        #resumen-modal-innerBody #innerBody-agendas table tbody tr:nth-child(odd) td:nth-child(8) {
+          background-color: rgba(225, 211, 83, 0.4);
+        }
+
+        #resumen-modal-innerBody #innerBody-agendas table tbody tr:nth-child(odd) td:nth-child(9) {
+          background-color: rgba(128, 136, 146, 0.4);
+        }
+
+        #resumen-modal-innerBody #innerBody-agendas table tbody tr:nth-child(even) td:nth-child(1),
+        #resumen-modal-innerBody #innerBody-agendas table tbody tr:nth-child(even) td:nth-child(2),
+        #resumen-modal-innerBody #innerBody-agendas table tbody tr:nth-child(even) td:nth-child(3),
+        #resumen-modal-innerBody #innerBody-agendas table tbody tr:nth-child(even) td:nth-child(4),
+        #resumen-modal-innerBody #innerBody-agendas table tbody tr:nth-child(even) td:nth-child(5) {
+          background-color: rgba(0, 0, 0, 0.15);
+        }
+          
+        #resumen-modal-innerBody #innerBody-agendas table tbody tr:nth-child(even) td:nth-child(6) {
+          background-color: rgba(53, 96, 189, 0.6);
+        }
+          
+        #resumen-modal-innerBody #innerBody-agendas table tbody tr:nth-child(even) td:nth-child(7) {
+          background-color: rgba(41, 115, 68, 0.6);
+        }
+
+        #resumen-modal-innerBody #innerBody-agendas table tbody tr:nth-child(even) td:nth-child(8) {
+          background-color: rgba(186, 174, 69, 0.6);
+        }
+
+        #resumen-modal-innerBody #innerBody-agendas table tbody tr:nth-child(even) td:nth-child(9) {
+          background-color: rgba(94, 100, 107, 0.6);
         }
       </style>
     `;
 
     modalHTML.id = 'resumen-modal';
+    modalHTML.onclick = (e) => {
+      if (e.target.id === 'resumen-modal') {
+        modalHTML.style.display = 'none';
+      }
+    };
     modalHTML.innerHTML = `
       ${css}
       <div id="resumen-modal-container">
@@ -530,12 +798,183 @@ if (document.location.href.includes('reservo.cl/appointment')) {
         </div>
         
         <div id="resumen-modal-body">
-          <div id="resumen-modal-innerBody"></div>
+          <div id="resumen-modal-innerBody">
+            <div id="innerBody-date">
+              <button class="date-controls">Hoy</button>
+              <button class="date-controls"><</button>
+              <input class="date-controls" type="text" readonly />
+              <button class="date-controls">></button>
+
+              <span></span>
+            </div>
+
+            <div id="innerBody-resumen">
+              <div class="innerBody-resumen-div">
+                <span>Procedimientos del Dia</span>
+                <table>
+                  <thead>
+                    <th width="50%;"></th>
+                    <th width="70px;">Juan</th>
+                    <th width="70px;">Sanguino</th>
+                  </thead>
+
+                  <tbody>
+                    <tr>
+                      <td style="text-align: right;">Plasma Rico en Plaquetas</td>
+                      <td style="text-align: center;">-</td>
+                      <td style="text-align: center;">-</td>
+                    </tr>
+                    <tr>
+                      <td style="text-align: right;">Viscosuplemento</td>
+                      <td style="text-align: center;">-</td>
+                      <td style="text-align: center;">-</td>
+                    </tr>
+                    <tr>
+                      <td style="text-align: right;">Ozonoterapias</td>
+                      <td style="text-align: center;">-</td>
+                      <td style="text-align: center;">-</td>
+                    </tr>
+                    <tr>
+                      <td style="text-align: right;">Infiltraciones</td>
+                      <td style="text-align: center;">-</td>
+                      <td style="text-align: center;">-</td>
+                    </tr>
+                    <tr>
+                      <td style="text-align: right;">Procedimiento Eco Dirigido</td>
+                      <td style="text-align: center;">-</td>
+                      <td style="text-align: center;">-</td>
+                    </tr>
+                    <tr>
+                      <td style="text-align: right;">Electrocardiogramas</td>
+                      <td style="text-align: center;">-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <div class="innerBody-resumen-div">
+                <span>Totales del Dia</span>
+                <div style="display: flex; flex-direction: row;">
+                  <div>
+                    <ul style="text-align: right;">
+                      <li>Horario del dia:</li>
+                      <li>Horario Relativo:</li>
+                      <li>Doctores en el dia:</li>
+                      <li>Agendados:</li>
+                      <li>Sobrecupos:</li>
+                      <li>Atendidos:</li>
+                      <li>Confirmados:</li>
+                      <li>Suspendidos:</li>
+                      <li>Sin Confirmar:</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <ul style="list-style-type: none; margin-left: 1rem;">
+                      <li></li>
+                      <li></li>
+                      <li></li>
+                      <li></li>
+                      <li></li>
+                      <li></li>
+                      <li></li>
+                      <li></li>
+                      <li></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="innerBody-agendas">
+              <table>
+                <div></div>
+                <thead>
+                  <tr>
+                    <th style="min-width: 29px;">#</th>
+                    <th style="width: calc(216px - 0.5rem)">Doctor</th>
+                    <th style="width: calc(131px - 0.5rem)">Horario</th>
+                    <th>Agendados</th>
+                    <th>Sobrecupos</th>
+                    <th>Atendidos</th>
+                    <th>Confirmados</th>
+                    <th>Suspendidos</th>
+                    <th width="12%">Sin Confirmar</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     `;
 
+    // Asignar valores y parametros del Iframe
+    iframeState.html.src = 'https://reservo.cl/appointment/listAppointmentDay/';
+    iframeState.html.id = 'agenda-iframe';
+    iframeState.html.addEventListener('load', () => iframeState.callback());
+    iframeState.html.setAttribute('style', 'position: absolute; left: -99999px');
+
+    // Inyectar estructuras
     document.querySelector('body').append(modalHTML);
+    modalHTML.append(iframeState.html);
+
+    // Setear datePicker
+    $('#resumen-modal-innerBody input')
+      .datepicker({
+        dateFormat: 'dd-mm-yy',
+        changeMonth: true,
+        changeYear: true,
+        yearRange: `2024:${new Date().getFullYear()}`,
+        onSelect: (e) => {
+          this.blur();
+
+          setTimeout(() => {
+            setDate(e);
+          }, 10);
+        },
+      })
+      .change(({ target }) => {
+        setDate(target.value);
+      });
+
+    // Eventos a los botones
+    document.querySelectorAll('#resumen-modal-innerBody button').forEach((value, k) => {
+      // Hoy
+      if (k === 0) {
+        value.addEventListener('click', () => {
+          if (iframeState.isReady) {
+            setDate(dateFormat(new Date()));
+          }
+        });
+      }
+
+      // <
+      if (k === 1) {
+        value.addEventListener('click', () => {
+          if (iframeState.isReady) {
+            const currentDate = document.querySelector('#resumen-modal-innerBody input').value;
+            const dateArray = getDateArray(currentDate);
+
+            setDate(dateFormat(new Date(dateArray[2], dateArray[1] - 1, dateArray[0] - 1)));
+          }
+        });
+      }
+
+      // >
+      if (k === 2) {
+        value.addEventListener('click', () => {
+          if (iframeState.isReady) {
+            const currentDate = document.querySelector('#resumen-modal-innerBody input').value;
+            const dateArray = getDateArray(currentDate);
+
+            setDate(dateFormat(new Date(dateArray[2], dateArray[1] - 1, dateArray[0] + 1)));
+          }
+        });
+      }
+    });
   }
 
   function buildResumenButton() {
@@ -548,9 +987,547 @@ if (document.location.href.includes('reservo.cl/appointment')) {
     resumenButton.onclick = (e) => e.preventDefault();
     resumenButton.addEventListener('click', () => {
       document.querySelector('#resumen-modal').style.display = 'block';
+
+      setDate(dateFormat(new Date()));
+      setDateControls(false);
     });
 
     motherButton.parentElement.append(resumenButton);
+  }
+
+  function setDateControls(e) {
+    if (e) {
+      document
+        .querySelectorAll('#resumen-modal-innerBody #innerBody-date .date-controls')
+        .forEach((value) => {
+          value.removeAttribute('disabled');
+        });
+
+      iframeState.isReady = true;
+    } else {
+      document
+        .querySelectorAll('#resumen-modal-innerBody #innerBody-date .date-controls')
+        .forEach((value) => {
+          value.setAttribute('disabled', '');
+        });
+
+      iframeState.isReady = false;
+    }
+  }
+
+  function setDate(e) {
+    const mainHTML = document.querySelector('#resumen-modal-innerBody');
+
+    // Aplicar cambios al datePicker
+    $('#innerBody-date input').datepicker('setDate', e);
+    mainHTML.querySelector('#innerBody-date span').innerHTML = datePickerFormat(e);
+
+    // Procesos extraccion de datos del iframe
+    iframeState.callback = () => {
+      // Obtener HTMLs internos del iframe
+      iframeState.init();
+      setDateControls(true);
+
+      // Obtener tabla de citas
+      const rowsHTML = iframeState.document.querySelectorAll('#citasdia tbody tr');
+      const data = {
+        prp: { juan: 0, sanguino: 0 },
+        visco: { juan: 0, sanguino: 0 },
+        ozono: { juan: 0, sanguino: 0 },
+        infilt: { juan: 0, sanguino: 0 },
+        eco: { juan: 0, sanguino: 0 },
+        electro: 0,
+        schedule: { from: { value: 0, text: '' }, to: { value: 0, text: '' } },
+        relativeSchedule: { from: { value: 0, text: '' }, to: { value: 0, text: '' } },
+        doctorList: {},
+        Agendados: 0,
+        Sobrecupos: 0,
+        Atendidos: 0,
+        Confirmados: 0,
+        Suspendidos: 0,
+        SinConfirmar: 0,
+      };
+
+      // Recorrer tabla de citas
+      rowsHTML.forEach((value) => {
+        const currentRowData = {};
+
+        // Recorrer celdas del row y extraer datos
+        value.querySelectorAll('td').forEach((valua, k) => {
+          const currentValue = valua.innerText;
+
+          // 0: Hora
+          if (k === 0) {
+            currentRowData.hora = currentValue;
+          }
+
+          // 1:	RUT
+          if (k === 1) {
+            currentRowData.rut = currentValue;
+          }
+
+          // 3:	Descripción/Tratamiento
+          if (k === 3) {
+            currentRowData.tratamiento = currentValue;
+          }
+
+          // 5:	Estado
+          if (k === 5) {
+            const estadoArray = {
+              A: 'Atendido',
+              C: 'Confirmado',
+              NC: 'No Confirmado',
+              NL: 'No llegó',
+              S: 'Suspendió',
+              D: 'Pago descartado',
+              LL: 'Llegó',
+              LE: 'Lista de Espera',
+              LAA: 'Listo para ser atendido',
+            };
+
+            currentRowData.estado = estadoArray[valua.children[0].value];
+          }
+
+          // 8:	Box/Prof
+          if (k === 8) {
+            currentRowData.doctor = currentValue;
+          }
+        });
+
+        // Organizar datos por doctor
+        // Si el doctor no existe en el array preparar objeto con el doctor correspondiente
+        if (!(currentRowData.doctor in data.doctorList)) {
+          data.doctorList[currentRowData.doctor] = {
+            name: currentRowData.doctor,
+            schedule: { from: { value: 0, text: '' }, to: { value: 0, text: '' } },
+            relativeSchedule: {
+              from: { value: 0, text: '' },
+              to: { value: 0, text: '' },
+              minutes: 0,
+            },
+            Agendados: 0,
+            Sobrecupos: 0,
+            Atendidos: 0,
+            Confirmados: 0,
+            Suspendidos: 0,
+            SinConfirmar: 0,
+            pxList: [],
+          };
+        }
+
+        // Agregar px en el array que corresponda
+        data.doctorList[currentRowData.doctor].pxList.push({
+          rut: currentRowData.rut,
+          hora: getHourValues(currentRowData.hora),
+          tratamiento: currentRowData.tratamiento,
+          estado: currentRowData.estado,
+          sobrecupo: false,
+        });
+      });
+
+      // Recorrer lista de doctores y generar estadisticas
+      Object.entries(data.doctorList).forEach(([, value]) => {
+        // Recorrer pacientes agendados al doctor
+        value.pxList.forEach((valua, k) => {
+          getProcedimientos();
+          getHorarios();
+          getStats();
+
+          function getProcedimientos() {
+            const template = {
+              'Dr. Juan Manuel Hernandez Martinez': 'juan',
+              'Dr. Seymour Emir Sanguino Ojeda': 'sanguino',
+              'Dr. Antonio Leon Velarde': '',
+            };
+
+            // Aplicar si el procedimiento es de juan, sanguino o el cardiologo
+            if (value.name in template && !isSuspended(valua)) {
+              const currentTratamiento = valua.tratamiento.toUpperCase();
+
+              if (currentTratamiento.includes('ECO')) {
+                const found = currentTratamiento.match(/ECO/gi);
+                const n = found !== null ? found.length : 0;
+
+                data.eco[template[value.name]] += n;
+              } else {
+                if (currentTratamiento.includes('VISCO')) {
+                  const found = currentTratamiento.match(/VISCO/gi);
+                  const exceptions = currentTratamiento.match(/HONORARIOS/gi);
+
+                  const nFound = found !== null ? found.length : 0;
+                  const nExceptions = exceptions !== null ? exceptions.length : 0;
+
+                  data.visco[template[value.name]] += nFound - nExceptions;
+                }
+
+                if (currentTratamiento.includes('PRP')) {
+                  const found = currentTratamiento.match(/PRP/gi);
+                  const exceptions = currentTratamiento.match(/HONORARIOS/gi);
+
+                  const nFound = found !== null ? found.length : 0;
+                  const nExceptions = exceptions !== null ? exceptions.length : 0;
+
+                  data.prp[template[value.name]] += nFound - nExceptions;
+                }
+
+                if (currentTratamiento.includes('OZONO')) {
+                  const found = currentTratamiento.match(/OZONO/gi);
+                  const n = found !== null ? found.length : 0;
+
+                  data.ozono[template[value.name]] += n;
+                }
+
+                if (currentTratamiento.includes('INFILT') || currentTratamiento.includes('ARTRO')) {
+                  const foundInf = currentTratamiento.match(/INFILT/gi);
+                  const foundArt = currentTratamiento.match(/ARTRO/gi);
+                  const nInf = foundInf !== null ? foundInf.length : 0;
+                  const nArt = foundArt !== null ? foundArt.length : 0;
+
+                  data.infilt[template[value.name]] += nInf + nArt;
+                }
+              }
+
+              if (currentTratamiento.includes('ELECTROCARDIOGRAMA')) {
+                data.electro += 1;
+              }
+            }
+          }
+
+          function getHorarios() {
+            // Aplicar horarios solo si el px no esta suspendido
+            if (!isSuspended(valua)) {
+              // Proceder si no es un electrocardiograma
+              if (valua.tratamiento !== 'ELECTROCARDIOGRAMA') {
+                setSchedule(data.schedule, valua.hora);
+                setSchedule(value.schedule, valua.hora);
+
+                setRelativeSchedule(value.relativeSchedule, valua.hora);
+                setSchedule(data.relativeSchedule, value.relativeSchedule);
+              }
+            }
+          }
+
+          function getStats() {
+            if (valua.tratamiento !== 'ELECTROCARDIOGRAMA') {
+              if (valua.estado === 'Suspendió' || valua.estado === 'No llegó') {
+                value.Suspendidos += 1;
+              }
+              // Agregar al stat de agendados solo si no esta suspendido
+              else {
+                if (valua.estado === 'Atendido') {
+                  value.Atendidos += 1;
+                }
+
+                if (valua.estado === 'Confirmado' || valua.estado === 'Llegó') {
+                  value.Confirmados += 1;
+                }
+
+                if (valua.estado === 'No Confirmado') {
+                  value.SinConfirmar += 1;
+                }
+
+                // Comprobar Sobrecupo
+                for (let i = 0; i < value.pxList.length; i++) {
+                  const currentFrom = valua.hora.from.value;
+                  const foundFrom = value.pxList[i].hora.from.value;
+                  const foundTo = value.pxList[i].hora.to.value;
+
+                  // Si el paciente no esta suspendido
+                  if (!isSuspended(value.pxList[i])) {
+                    // Y la hora encontrada esta dentro del comienzo de la actual
+                    if (currentFrom >= foundFrom && currentFrom < foundTo) {
+                      // Y no es el mismo paciente
+                      if (valua.rut !== value.pxList[i].rut) {
+                        // Y no fue contado como sobrecupo anteriormente ni el paciente actual ni el del array
+                        if (!valua.sobrecupo && !value.pxList[i].sobrecupo) {
+                          valua.sobrecupo = true;
+                          value.Sobrecupos += 1;
+                        }
+                      }
+                    }
+                  }
+                }
+
+                value.Agendados += 1;
+              }
+            }
+          }
+        });
+
+        // Obtener stats globales
+        if (value.Agendados > 0) {
+          data.Agendados += value.Agendados;
+          data.Sobrecupos += value.Sobrecupos;
+          data.Atendidos += value.Atendidos;
+          data.Confirmados += value.Confirmados;
+          data.Suspendidos += value.Suspendidos;
+          data.SinConfirmar += value.SinConfirmar;
+        } else {
+          delete data.doctorList[value.name];
+        }
+      });
+
+      // Presentar Resultados
+      renderResults(data);
+
+      /*
+        Funciones del proceso
+
+      */
+      // Aplicar horas a las respectivas variables
+      function setSchedule(e, a) {
+        // Aplicar valores si el horario al comienzo es menor que el registrado
+        if (e.from.value === 0 || e.from.value > a.from.value) {
+          e.from.value = a.from.value;
+          e.from.text = a.from.text;
+        }
+
+        // Aplicar valores si el horario al final es mayor que el registrado
+        if (e.to.value === 0 || e.to.value < a.to.value) {
+          e.to.value = a.to.value;
+          e.to.text = a.to.text;
+        }
+      }
+
+      function setRelativeSchedule(e, a) {
+        const currentMinutes = getMinutes(a);
+        e.minutes = e.minutes + currentMinutes;
+
+        // Aplicar valores si el horario al comienzo es menor que el registrado
+        if (e.from.value === 0 || e.from.value > a.from.value) {
+          e.from.value = a.from.value;
+          e.from.text = a.from.text;
+        }
+
+        // Aplicar valores si el horario al final es mayor que el registrado
+        if (e.to.value === 0 || e.to.value < a.to.value) {
+          e.to.value = a.to.value;
+          e.to.text = a.to.text;
+        }
+
+        // Aplicar valores si los minutos corresponden a mas del horario final registrado
+        const relativeCurrentTo = getRelativeCurrentTo();
+
+        if (e.to.value < relativeCurrentTo) {
+          const tempText =
+            String(relativeCurrentTo).length === 4
+              ? `${relativeCurrentTo}`
+              : `0${relativeCurrentTo}`;
+          const tampText = `${tempText.slice(0, 2)}:${tempText.slice(2, 4)}`;
+
+          e.to.value = relativeCurrentTo;
+          e.to.text = tampText;
+        }
+
+        // Calcular Horario final relativo
+        function getRelativeCurrentTo() {
+          // Descomponer valor del horario relativo a minutos
+          const relativeFromHours = Number(
+            String(e.from.value).length === 4
+              ? String(e.from.value).slice(0, 2)
+              : String(e.from.value)[0]
+          );
+
+          const relativeFromTotal = e.from.value - 40 * relativeFromHours;
+          let relativeCurrentTo = relativeFromTotal + e.minutes;
+          let relativeCurrentToValue = 0;
+
+          // Rearmar valor relativo sumando el tiempo de las citas
+          while (relativeCurrentTo !== 0) {
+            if (relativeCurrentTo >= 60) {
+              relativeCurrentToValue += 100;
+              relativeCurrentTo -= 60;
+            } else {
+              relativeCurrentToValue += relativeCurrentTo;
+              relativeCurrentTo = 0;
+            }
+          }
+
+          return relativeCurrentToValue;
+        }
+      }
+
+      // Obtener From-To de una agenda
+      function getHourValues(e) {
+        const [fromHour, toHour] = e.replaceAll(' ', '').split('-');
+        return {
+          from: {
+            value: Number(fromHour.replace(':', '')),
+            text: fromHour,
+          },
+          to: {
+            value: Number(toHour.replace(':', '')),
+            text: toHour,
+          },
+        };
+      }
+
+      // Obtener minutos totales de un periodo de tiempo
+      function getMinutes({ from, to }) {
+        const fromHours = Number(
+          String(from.value).length === 4 ? String(from.value).slice(0, 2) : String(from.value)[0]
+        );
+
+        const toHours = Number(
+          String(to.value).length === 4 ? String(to.value).slice(0, 2) : String(to.value)[0]
+        );
+
+        const tFrom = from.value - 40 * fromHours;
+        const tTo = to.value - 40 * toHours;
+
+        return tTo - tFrom;
+      }
+
+      // Verificar si el paciente esta suspendido o no llego
+      function isSuspended(e) {
+        if (e.estado === 'Suspendió' || e.estado === 'No llegó') {
+          return true;
+        }
+
+        return false;
+      }
+    };
+
+    // Cambiar fecha en el date del iframe
+    if (iframeState.dateHTML !== null) {
+      const dateArray = getDateArray(e);
+      const selectedDate = `${dateArray[2]}-${dateArray[1]}-${dateArray[0]}`;
+
+      iframeState.dateHTML.value = selectedDate;
+      iframeState.dateSubmit.click();
+      setDateControls(false);
+      renderResults(false);
+    }
+
+    function renderResults(e) {
+      const procedimientosHTML = mainHTML.querySelectorAll('.innerBody-resumen-div')[0];
+      const procedimientosRows = procedimientosHTML.querySelectorAll('tbody tr');
+      const totalesHTML = mainHTML.querySelectorAll('.innerBody-resumen-div')[1];
+      const totalesRows = totalesHTML.querySelectorAll('ul')[1].children;
+      const agendasHTML = mainHTML.querySelector('#innerBody-agendas tbody');
+
+      // Presentar datos
+      if (e) {
+        // Procedimientos
+        setProcedimientos(procedimientosRows[0].children[1], e.prp.juan);
+        setProcedimientos(procedimientosRows[0].children[2], e.prp.sanguino);
+        setProcedimientos(procedimientosRows[1].children[1], e.visco.juan);
+        setProcedimientos(procedimientosRows[1].children[2], e.visco.sanguino);
+        setProcedimientos(procedimientosRows[2].children[1], e.ozono.juan);
+        setProcedimientos(procedimientosRows[2].children[2], e.ozono.sanguino);
+        setProcedimientos(procedimientosRows[3].children[1], e.infilt.juan);
+        setProcedimientos(procedimientosRows[3].children[2], e.infilt.sanguino);
+        setProcedimientos(procedimientosRows[4].children[1], e.eco.juan);
+        setProcedimientos(procedimientosRows[4].children[2], e.eco.sanguino);
+        setProcedimientos(procedimientosRows[5].children[1], e.electro);
+
+        // Totales
+        totalesRows[0].innerHTML = `${e.schedule.from.text} - ${e.schedule.to.text}`;
+        totalesRows[1].innerHTML = `${e.relativeSchedule.from.text} - ${e.relativeSchedule.to.text}`;
+        setTotales(totalesRows[2], Object.keys(e.doctorList).length);
+        setTotales(totalesRows[3], e.Agendados);
+        setTotales(totalesRows[4], e.Sobrecupos);
+        setTotales(totalesRows[5], e.Atendidos);
+        setTotales(totalesRows[6], e.Confirmados);
+        setTotales(totalesRows[7], e.Suspendidos);
+        setTotales(totalesRows[8], e.SinConfirmar);
+
+        // Agendas
+        // Organizar lista
+        const sortedList = [];
+
+        Object.entries(e.doctorList).forEach(([, value]) => {
+          const temp = { ...value };
+          temp.n = temp.schedule.from.value;
+
+          sortedList.push(temp);
+        });
+
+        sortedList.sort((a, b) => a.n - b.n);
+
+        // Presentar lista
+        sortedList.forEach((value, k) => {
+          const tempRow = document.createElement('tr');
+
+          tempRow.innerHTML = `
+            <td style="text-align: center; border-right: 1px solid;">${k + 1}</td>
+            <td style="max-width: calc(216px - 0.5rem);">${value.name}</td>
+            <td style="width: calc(131px - 0.5rem); text-align: center;">
+              ${value.schedule.from.text} - ${value.schedule.to.text}
+              <br>
+              <i style="font-size: smaller;">
+                (${value.relativeSchedule.from.text} - ${value.relativeSchedule.to.text})
+              </i>
+            </td>
+            <td style="
+              font-size: larger;
+              text-align: center;
+              border-right: 1px solid;
+              border-left: 1px solid;
+            ">${value.Agendados}</td>
+            <td style="
+              font-size: larger;
+              text-align: center;
+              border-right: 1px solid;
+            ">${value.Sobrecupos}</td>
+            <td style="text-align: center; font-size: larger;">${value.Atendidos}</td>
+            <td style="text-align: center; font-size: larger;">${value.Confirmados}</td>
+            <td style="text-align: center; font-size: larger;">${value.Suspendidos}</td>
+            <td style="text-align: center; font-size: larger;">${value.SinConfirmar}</td>
+          `;
+
+          agendasHTML.append(tempRow);
+        });
+      }
+      // Limpiar Datos
+      else {
+        procedimientosRows.forEach((value) => {
+          setProcedimientos(value.children[1], 'reset');
+
+          if (value.children.length === 3) {
+            setProcedimientos(value.children[2], 'reset');
+          }
+        });
+
+        for (const value of totalesRows) {
+          setTotales(value, 'reset');
+        }
+
+        agendasHTML.innerHTML = '';
+      }
+
+      // Aplicar cambios a cada seccion
+      function setProcedimientos(html, e) {
+        if (e === 'reset') {
+          html.parentElement.removeAttribute('has-value');
+          html.innerHTML = '-';
+
+          return;
+        }
+
+        if (e > 0) {
+          html.parentElement.setAttribute('has-value', '');
+          html.innerHTML = e;
+        } else {
+          html.innerHTML = '';
+        }
+      }
+
+      function setTotales(html, e) {
+        if (e === 'reset') {
+          html.removeAttribute('has-value');
+          html.innerHTML = '-';
+
+          return;
+        }
+
+        if (e > 0) {
+          html.setAttribute('has-value', '');
+        }
+
+        html.innerHTML = e;
+      }
+    }
   }
 }
 
