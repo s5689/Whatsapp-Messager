@@ -79,6 +79,7 @@ chrome.runtime.onMessage.addListener((e) => {
       } else {
         window.open('https://wa.me/' + numero + '?text=' + encodeURIComponent(text), '_blank');
         window.open('https://wa.me/' + numero + '?text=' + encodeURIComponent(text), '_blank');
+        navigator.clipboard.writeText(text);
 
         setTimeout(() => {
           chrome.runtime.sendMessage({
@@ -299,161 +300,6 @@ try {
       buildRutButtonCheck();
     }
   }).observe(document.getElementById('myModal').parentElement, { childList: true });
-
-  // De resumen de Citas
-  document.querySelector('#iframeregistroconfirmacion').addEventListener('load', () => {
-    const iframeDocument = document.querySelector('#iframeregistroconfirmacion').contentDocument;
-    const citasTable = iframeDocument.querySelectorAll('#tickets_email')[0];
-    const citasRows = citasTable.querySelectorAll('tbody tr');
-    const selectedDate = { calendar: '', reservo: '', reservoPrint: '' };
-    const reservoCalendars = [];
-    const doctorList = [];
-
-    // Obtener todos los doctores individuales que atenderan
-    citasRows.forEach((value) => {
-      const currentChildren = value.children;
-      const currentLastCell = currentChildren[currentChildren.length - 1];
-      const currentDoctor = currentLastCell.innerHTML.slice(0, -1);
-      const foundDoctor = doctorList.findIndex((valua) => valua.name === currentDoctor);
-
-      // Si el doctor no esta en el array, crear
-      if (foundDoctor === -1) {
-        doctorList.push({ name: currentDoctor, ammount: 1 });
-      }
-      // Si ya esta, sumar un paciente
-      else {
-        doctorList[foundDoctor].ammount += 1;
-      }
-    });
-
-    // Si la pagina actual es de citas multiples, obtener doctores mostrados
-    const multiCalendar = { state: false, equal: false, text: '' };
-
-    if (location.pathname === '/appointment/viewAllAppts/') {
-      const allCalendars = [];
-
-      // Buscar y almacenar todos los calendarios actuales
-      document.querySelectorAll('#contenedor-calendario td').forEach((value) => {
-        // Solo almacenar si tienen ID de calendario, y tienen contenido
-        if (value.id.includes('schedule_') && value.innerHTML !== '') {
-          allCalendars.push(value);
-        }
-      });
-
-      // Recorrer calendarios
-      allCalendars.forEach((value) => {
-        const currentName = value.querySelector('.fc-center').innerText;
-        const currentSchedule = value.querySelector('.fc-content-skeleton .fc-event-container');
-
-        // Si hay agendas en el calendario
-        if (currentSchedule.length !== 0) {
-          // Recorrer las agendas
-          for (let k = 0; k < currentSchedule.children.length; k++) {
-            // Si la cita no es un Bloqueo de agenda
-            if (currentSchedule.children[k].style.backgroundColor !== 'black') {
-              // Si el doctor no se encuentra en el array
-              if (reservoCalendars.findIndex((value) => value === currentName) === -1) {
-                reservoCalendars.push(currentName);
-              }
-            }
-          }
-        }
-      });
-
-      // Confirmar el multicalendario
-      multiCalendar.state = true;
-    }
-
-    // Obtener las fechas seleccionadas en Reservo y en el calendario
-    selectedDate.calendar = formatDate(iframeDocument.querySelector("[name='fecha']").value);
-    selectedDate.reservo = formatDate(document.querySelector('#datepicker').value);
-    multiCalendar.equal = selectedDate.calendar === selectedDate.reservo ? true : false;
-
-    // Generar texto para Reservo si hay multicalendario
-    if (multiCalendar.state) {
-      selectedDate.reservoPrint = `Fecha en Multicalendario: ${selectedDate.reservo}<br />`;
-    }
-
-    // Organizar lista de doctores para la interfaz
-    let doctorListText = '';
-
-    doctorList.forEach((value) => {
-      let toAlert = '';
-
-      // Si el multicalendario esta activado, comprobar
-      if (multiCalendar.state) {
-        let isFound = false;
-
-        // Recorrer los calendarios con agendas en reservo
-        reservoCalendars.forEach((valua) => {
-          // Si el doctor actual tiene px en reservo, confirmar encontrado
-          if (value.name.includes(valua.slice(0, -1))) {
-            isFound = true;
-          }
-        });
-
-        // Si no se encontro en reservo y las fechas son iguales, presentar error
-        if (!isFound && multiCalendar.equal) {
-          toAlert = '<span style="color:red;">(!)</span>';
-        }
-      }
-
-      // Armar texto
-      doctorListText += `<li>${value.name}: <b>${value.ammount} ${toAlert}</b></li>`;
-    });
-
-    // Mostrar cantidad de pacientes de reservo si esta en modo multicalendario
-    // y si las fechas son iguales
-    if (multiCalendar.state && multiCalendar.equal) {
-      multiCalendar.text = `(${reservoCalendars.length})`;
-    }
-
-    // Crear Interfaz de estadisticas
-    const statsHTML = document.createElement('div');
-    statsHTML.setAttribute(
-      'style',
-      `
-        text-align: left;
-        font-size: large;
-        background-color: antiquewhite;
-        padding: 1rem;
-        border-radius: 2rem;
-      `
-    );
-
-    // Armar HTML
-    statsHTML.innerHTML = `
-      Fecha Seleccionada: ${selectedDate.calendar}<br />
-      ${selectedDate.reservoPrint}<br />
-      Doctores en el dia: <b>${doctorList.length} ${multiCalendar.text}</b><br />
-      Pacientes Agendados: <b>${citasRows.length}</b><br />
-      <br />
-      Cantidad de Pacientes por Doctor <i>(Incluye suspendidos)</i>:<br />
-      <ul>${doctorListText}</ul>
-    `;
-
-    // Inyectar en el Iframe
-    iframeDocument.querySelector('form').insertAdjacentElement('afterend', statsHTML);
-
-    // Formatear la fecha de los calendarios
-    function formatDate(e) {
-      const splitDate = e.split('-');
-      const weekDay = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-
-      if (splitDate[0].length === 4) {
-        const temp0 = splitDate[2];
-        const temp1 = splitDate[0];
-
-        splitDate[0] = temp0;
-        splitDate[2] = temp1;
-      }
-
-      const mergedDate = `${splitDate[0]}/${splitDate[1]}/${splitDate[2]}`;
-      const tempDate = new Date(`${splitDate[2]}/${splitDate[1]}/${splitDate[0]}`);
-
-      return `${weekDay[tempDate.getDay()]} ${mergedDate}`;
-    }
-  });
 } catch (e) {}
 
 // Inyectar Resumen del dia (solo en agenda)
@@ -672,6 +518,16 @@ if (document.location.href.includes('reservo.cl/appointment')) {
 
         #resumen-modal-innerBody #innerBody-resumen .innerBody-resumen-div tr[has-value] {
           background-color: rgba(0,0,0,0.1);
+        }
+
+        #resumen-modal-innerBody #innerBody-resumen .innerBody-resumen-div tr[has-value] td[title] {
+          cursor: help;
+          transition: background 400ms;
+        }
+
+        #resumen-modal-innerBody #innerBody-resumen .innerBody-resumen-div tr[has-value] td[title]:hover {
+          cursor: help;
+          background-color: rgba(0,0,0,0.2);
         }
 
         #resumen-modal-innerBody #innerBody-resumen .innerBody-resumen-div li[has-value] {
@@ -1126,11 +982,11 @@ if (document.location.href.includes('reservo.cl/appointment')) {
       // Obtener tabla de citas
       const rowsHTML = iframeState.document.querySelectorAll('#citasdia tbody tr');
       const data = {
-        prp: { juan: 0, sanguino: 0 },
-        visco: { juan: 0, sanguino: 0 },
-        ozono: { juan: 0, sanguino: 0 },
-        infilt: { juan: 0, sanguino: 0 },
-        eco: { juan: 0, sanguino: 0 },
+        prp: { juan: [], sanguino: [] },
+        visco: { juan: [], sanguino: [] },
+        ozono: { juan: [], sanguino: [] },
+        infilt: { juan: [], sanguino: [] },
+        eco: { juan: [], sanguino: [] },
         electro: 0,
         schedule: {
           from: { value: 0, text: '' },
@@ -1245,7 +1101,10 @@ if (document.location.href.includes('reservo.cl/appointment')) {
                 const found = currentTratamiento.match(/ECO/gi);
                 const n = found !== null ? found.length : 0;
 
-                data.eco[template[value.name]] += n;
+                // Ingresar la hora del procedimientos el numero de veces encontrado
+                for (let i = 0; i < n; i++) {
+                  data.eco[template[value.name]].push(valua.hora.from.text);
+                }
               } else {
                 if (currentTratamiento.includes('VISCO')) {
                   const found = currentTratamiento.match(/VISCO/gi);
@@ -1253,8 +1112,12 @@ if (document.location.href.includes('reservo.cl/appointment')) {
 
                   const nFound = found !== null ? found.length : 0;
                   const nExceptions = exceptions !== null ? exceptions.length : 0;
+                  const n = nFound - nExceptions;
 
-                  data.visco[template[value.name]] += nFound - nExceptions;
+                  // Ingresar la hora del procedimientos el numero de veces encontrado
+                  for (let i = 0; i < n; i++) {
+                    data.visco[template[value.name]].push(valua.hora.from.text);
+                  }
                 }
 
                 if (currentTratamiento.includes('PRP')) {
@@ -1263,15 +1126,22 @@ if (document.location.href.includes('reservo.cl/appointment')) {
 
                   const nFound = found !== null ? found.length : 0;
                   const nExceptions = exceptions !== null ? exceptions.length : 0;
+                  const n = nFound - nExceptions;
 
-                  data.prp[template[value.name]] += nFound - nExceptions;
+                  // Ingresar la hora del procedimientos el numero de veces encontrado
+                  for (let i = 0; i < n; i++) {
+                    data.prp[template[value.name]].push(valua.hora.from.text);
+                  }
                 }
 
                 if (currentTratamiento.includes('OZONO')) {
                   const found = currentTratamiento.match(/OZONO/gi);
                   const n = found !== null ? found.length : 0;
 
-                  data.ozono[template[value.name]] += n;
+                  // Ingresar la hora del procedimientos el numero de veces encontrado
+                  for (let i = 0; i < n; i++) {
+                    data.ozono[template[value.name]].push(valua.hora.from.text);
+                  }
                 }
 
                 if (currentTratamiento.includes('INFILT') || currentTratamiento.includes('ARTRO')) {
@@ -1279,8 +1149,12 @@ if (document.location.href.includes('reservo.cl/appointment')) {
                   const foundArt = currentTratamiento.match(/ARTRO/gi);
                   const nInf = foundInf !== null ? foundInf.length : 0;
                   const nArt = foundArt !== null ? foundArt.length : 0;
+                  const n = nInf + nArt;
 
-                  data.infilt[template[value.name]] += nInf + nArt;
+                  // Ingresar la hora del procedimientos el numero de veces encontrado
+                  for (let i = 0; i < n; i++) {
+                    data.infilt[template[value.name]].push(valua.hora.from.text);
+                  }
                 }
               }
 
@@ -1608,13 +1482,15 @@ if (document.location.href.includes('reservo.cl/appointment')) {
         if (e === 'reset') {
           html.parentElement.removeAttribute('has-value');
           html.innerHTML = '-';
+          html.removeAttribute('title');
 
           return;
         }
 
-        if (e > 0) {
+        if (e.length > 0) {
           html.parentElement.setAttribute('has-value', '');
-          html.innerHTML = e;
+          html.innerHTML = e.length;
+          html.title = e.join(', ');
         } else {
           html.innerHTML = '';
         }

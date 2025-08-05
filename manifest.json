@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Whatsapp Messager",
-  "version": "6.0.1.0",
+  "version": "6.0.2.0",
   "description": "Que pereza escribir todo a mano zzz...",
   "action": {
     "default_popup": "popup.html"
