@@ -300,11 +300,6 @@ try {
     }
   }).observe(document.getElementById('myModal').parentElement, { childList: true });
 
-  /*
-    POSIBLE MEJORA:
-    Basar el resumen de citas en base al listado de citas
-      > Crear un boton que abra un modal que contenga la info
-      */
   // De resumen de Citas
   document.querySelector('#iframeregistroconfirmacion').addEventListener('load', () => {
     const iframeDocument = document.querySelector('#iframeregistroconfirmacion').contentDocument;
@@ -479,6 +474,7 @@ if (document.location.href.includes('reservo.cl/appointment')) {
     document: null,
     dateHTML: null,
     dateSubmit: null,
+    currentData: null,
   };
 
   datePickerSettings();
@@ -806,6 +802,16 @@ if (document.location.href.includes('reservo.cl/appointment')) {
               <button class="date-controls">></button>
 
               <span></span>
+              ${
+                location.pathname === '/appointment/viewAllAppts/'
+                  ? `<button 
+                      class="date-controls"
+                      style="
+                        position: absolute;
+                        right: 2rem;
+                    ">Sincronizar con Agenda Multiple</button>`
+                  : ''
+              }
             </div>
 
             <div id="innerBody-resumen">
@@ -858,7 +864,6 @@ if (document.location.href.includes('reservo.cl/appointment')) {
                   <div>
                     <ul style="text-align: right;">
                       <li>Horario del dia:</li>
-                      <li>Horario Relativo:</li>
                       <li>Doctores en el dia:</li>
                       <li>Agendados:</li>
                       <li>Sobrecupos:</li>
@@ -870,7 +875,6 @@ if (document.location.href.includes('reservo.cl/appointment')) {
                   </div>
                   <div>
                     <ul style="list-style-type: none; margin-left: 1rem;">
-                      <li></li>
                       <li></li>
                       <li></li>
                       <li></li>
@@ -942,38 +946,128 @@ if (document.location.href.includes('reservo.cl/appointment')) {
 
     // Eventos a los botones
     document.querySelectorAll('#resumen-modal-innerBody button').forEach((value, k) => {
-      // Hoy
-      if (k === 0) {
-        value.addEventListener('click', () => {
+      value.addEventListener('click', () => {
+        // Hoy
+        if (k === 0) {
           if (iframeState.isReady) {
             setDate(dateFormat(new Date()));
           }
-        });
-      }
+        }
 
-      // <
-      if (k === 1) {
-        value.addEventListener('click', () => {
+        // <
+        if (k === 1) {
           if (iframeState.isReady) {
             const currentDate = document.querySelector('#resumen-modal-innerBody input').value;
             const dateArray = getDateArray(currentDate);
 
             setDate(dateFormat(new Date(dateArray[2], dateArray[1] - 1, dateArray[0] - 1)));
           }
-        });
-      }
+        }
 
-      // >
-      if (k === 2) {
-        value.addEventListener('click', () => {
+        // >
+        if (k === 2) {
           if (iframeState.isReady) {
             const currentDate = document.querySelector('#resumen-modal-innerBody input').value;
             const dateArray = getDateArray(currentDate);
 
             setDate(dateFormat(new Date(dateArray[2], dateArray[1] - 1, dateArray[0] + 1)));
           }
-        });
-      }
+        }
+
+        // Sincronizar
+        if (k === 3) {
+          if (iframeState.isReady) {
+            setDateControls(false);
+
+            (async () => {
+              const reservoContainer = document.querySelector('.multiselect-container');
+              const reservoDoctorsList = reservoContainer.querySelectorAll('li label');
+              const { doctorList } = iframeState.currentData;
+              const foundList = [];
+
+              // Obtener lista de doctores a sincronizar
+              reservoDoctorsList.forEach((valua) => {
+                const name = valua.innerText.trim().replace(/\s+/g, ' ');
+                const input = valua.querySelector('input');
+
+                // Deseleccionar doctor si esta previamente seleccionado
+                if (input.checked) {
+                  input.checked = false;
+                  input.dispatchEvent(new Event('change'));
+                }
+
+                // Agregar al array si corresponde
+                if (name in doctorList) {
+                  foundList.push({ input, data: doctorList[name] });
+                }
+              });
+
+              // Seleccionar doctores en base a la lista
+              for (const { input } of foundList) {
+                input.checked = true;
+                input.dispatchEvent(new Event('change'));
+
+                await new Promise((resolve) => setTimeout(() => resolve(), 15));
+              }
+
+              // Sincronizar fecha con la fecha del modal
+              const currentDate = $('#resumen-modal-innerBody input').val();
+              const script = document.createElement('script');
+
+              // Inyectar datepickerInjection al DOM
+              script.src = chrome.runtime.getURL('datepickerInjection.js');
+              script.id = 'datepicker-injection';
+              script.setAttribute('data', currentDate);
+              script.onload = () => script.remove();
+
+              document.querySelector('body').append(script);
+
+              // Repetir procesos hasta que todo se encuentre correctamente cargado
+              let fixer = 0;
+
+              while (true) {
+                const foundSchedule = [];
+
+                // Buscar y almacenar todos los calendarios actuales
+                document.querySelectorAll('#contenedor-calendario td').forEach((valua) => {
+                  // Solo almacenar si tienen ID de calendario, y tienen contenido
+                  if (valua.id.includes('schedule_') && valua.innerHTML !== '') {
+                    foundSchedule.push(valua);
+                  }
+                });
+
+                // Si las agendas cargadas corresponden a las obtenidas en el resumen
+                // O el ciclo se ha repetido mucho (reservo dio error)
+                if (foundSchedule.length === foundList.length || fixer > 7) {
+                  let isReady = true;
+
+                  // Recorrer calendarios
+                  foundSchedule.forEach((valua) => {
+                    // prettier-ignore
+                    const schedule = valua.querySelector('.fc-content-skeleton .fc-event-container');
+
+                    // Asignar a falso si alguna agenda aun no tiene sus elementos cargados
+                    isReady = schedule.children.length !== 0 ? true : false;
+                  });
+
+                  // Finalizar bucle si corresponde
+                  if (isReady) {
+                    break;
+                  }
+                }
+
+                // Mardito reservo
+                fixer++;
+
+                await new Promise((resolve) => setTimeout(() => resolve(), 50));
+              }
+
+              // Recargar Pagina
+              location.reload();
+            })();
+          }
+        }
+      });
     });
   }
 
@@ -988,7 +1082,8 @@ if (document.location.href.includes('reservo.cl/appointment')) {
     resumenButton.addEventListener('click', () => {
       document.querySelector('#resumen-modal').style.display = 'block';
 
-      setDate(dateFormat(new Date()));
+      // Sicronizar fecha con la asignada en reservo
+      setDate($('#datepicker').val());
       setDateControls(false);
     });
 
@@ -1037,8 +1132,11 @@ if (document.location.href.includes('reservo.cl/appointment')) {
         infilt: { juan: 0, sanguino: 0 },
         eco: { juan: 0, sanguino: 0 },
         electro: 0,
-        schedule: { from: { value: 0, text: '' }, to: { value: 0, text: '' } },
-        relativeSchedule: { from: { value: 0, text: '' }, to: { value: 0, text: '' } },
+        schedule: {
+          from: { value: 0, text: '' },
+          to: { value: 0, text: '' },
+          relative: { value: 0, text: '' },
+        },
         doctorList: {},
         Agendados: 0,
         Sobrecupos: 0,
@@ -1099,11 +1197,10 @@ if (document.location.href.includes('reservo.cl/appointment')) {
         if (!(currentRowData.doctor in data.doctorList)) {
           data.doctorList[currentRowData.doctor] = {
             name: currentRowData.doctor,
-            schedule: { from: { value: 0, text: '' }, to: { value: 0, text: '' } },
-            relativeSchedule: {
+            schedule: {
               from: { value: 0, text: '' },
               to: { value: 0, text: '' },
-              minutes: 0,
+              relative: { value: 0, text: '', minutes: 0 },
             },
             Agendados: 0,
             Sobrecupos: 0,
@@ -1201,8 +1298,10 @@ if (document.location.href.includes('reservo.cl/appointment')) {
                 setSchedule(data.schedule, valua.hora);
                 setSchedule(value.schedule, valua.hora);
 
-                setRelativeSchedule(value.relativeSchedule, valua.hora);
-                setSchedule(data.relativeSchedule, value.relativeSchedule);
+                setRelativeSchedule(value.schedule, valua.hora);
+
+                // Aplicar relative a Data
+                setSchedule(data.schedule, value.schedule, true);
               }
             }
           }
@@ -1214,11 +1313,11 @@ if (document.location.href.includes('reservo.cl/appointment')) {
               }
               // Agregar al stat de agendados solo si no esta suspendido
               else {
-                if (valua.estado === 'Atendido') {
+                if (valua.estado === 'Atendido' || valua.estado === 'Llegó') {
                   value.Atendidos += 1;
                 }
 
-                if (valua.estado === 'Confirmado' || valua.estado === 'Llegó') {
+                if (valua.estado === 'Confirmado') {
                   value.Confirmados += 1;
                 }
 
@@ -1270,12 +1369,15 @@ if (document.location.href.includes('reservo.cl/appointment')) {
       // Presentar Resultados
       renderResults(data);
 
+      // Aplicar data al iframeState
+      iframeState.currentData = data;
+
       /*
         Funciones del proceso
 
       */
       // Aplicar horas a las respectivas variables
-      function setSchedule(e, a) {
+      function setSchedule(e, a, r = false) {
         // Aplicar valores si el horario al comienzo es menor que el registrado
         if (e.from.value === 0 || e.from.value > a.from.value) {
           e.from.value = a.from.value;
@@ -1286,42 +1388,38 @@ if (document.location.href.includes('reservo.cl/appointment')) {
         if (e.to.value === 0 || e.to.value < a.to.value) {
           e.to.value = a.to.value;
           e.to.text = a.to.text;
+        }
+
+        // Aplicar valores al Relative de Data
+        if (r) {
+          if (e.relative.value === 0 || e.relative.value < a.relative.value) {
+            e.relative.value = a.relative.value;
+            e.relative.text = a.relative.text;
+          }
         }
       }
 
       function setRelativeSchedule(e, a) {
         const currentMinutes = getMinutes(a);
-        e.minutes = e.minutes + currentMinutes;
-
-        // Aplicar valores si el horario al comienzo es menor que el registrado
-        if (e.from.value === 0 || e.from.value > a.from.value) {
-          e.from.value = a.from.value;
-          e.from.text = a.from.text;
-        }
-
-        // Aplicar valores si el horario al final es mayor que el registrado
-        if (e.to.value === 0 || e.to.value < a.to.value) {
-          e.to.value = a.to.value;
-          e.to.text = a.to.text;
-        }
+        e.relative.minutes = e.relative.minutes + currentMinutes;
 
         // Aplicar valores si los minutos corresponden a mas del horario final registrado
         const relativeCurrentTo = getRelativeCurrentTo();
 
-        if (e.to.value < relativeCurrentTo) {
+        if (e.relative.value < relativeCurrentTo) {
           const tempText =
             String(relativeCurrentTo).length === 4
               ? `${relativeCurrentTo}`
               : `0${relativeCurrentTo}`;
           const tampText = `${tempText.slice(0, 2)}:${tempText.slice(2, 4)}`;
 
-          e.to.value = relativeCurrentTo;
-          e.to.text = tampText;
+          e.relative.value = relativeCurrentTo;
+          e.relative.text = tampText;
         }
 
         // Calcular Horario final relativo
         function getRelativeCurrentTo() {
-          // Descomponer valor del horario relativo a minutos
+          // Descomponer valor del horario a minutos
           const relativeFromHours = Number(
             String(e.from.value).length === 4
               ? String(e.from.value).slice(0, 2)
@@ -1329,7 +1427,7 @@ if (document.location.href.includes('reservo.cl/appointment')) {
           );
 
           const relativeFromTotal = e.from.value - 40 * relativeFromHours;
-          let relativeCurrentTo = relativeFromTotal + e.minutes;
+          let relativeCurrentTo = relativeFromTotal + e.relative.minutes;
           let relativeCurrentToValue = 0;
 
           // Rearmar valor relativo sumando el tiempo de las citas
@@ -1422,15 +1520,19 @@ if (document.location.href.includes('reservo.cl/appointment')) {
         setProcedimientos(procedimientosRows[5].children[1], e.electro);
 
         // Totales
-        totalesRows[0].innerHTML = `${e.schedule.from.text} - ${e.schedule.to.text}`;
-        totalesRows[1].innerHTML = `${e.relativeSchedule.from.text} - ${e.relativeSchedule.to.text}`;
-        setTotales(totalesRows[2], Object.keys(e.doctorList).length);
-        setTotales(totalesRows[3], e.Agendados);
-        setTotales(totalesRows[4], e.Sobrecupos);
-        setTotales(totalesRows[5], e.Atendidos);
-        setTotales(totalesRows[6], e.Confirmados);
-        setTotales(totalesRows[7], e.Suspendidos);
-        setTotales(totalesRows[8], e.SinConfirmar);
+        const totalRelative =
+          e.schedule.relative.value > e.schedule.to.value
+            ? `<i>(${e.schedule.relative.text})</i>`
+            : '';
+
+        totalesRows[0].innerHTML = `${e.schedule.from.text} - ${e.schedule.to.text} ${totalRelative}`;
+        setTotales(totalesRows[1], Object.keys(e.doctorList).length);
+        setTotales(totalesRows[2], e.Agendados);
+        setTotales(totalesRows[3], e.Sobrecupos);
+        setTotales(totalesRows[4], e.Atendidos);
+        setTotales(totalesRows[5], e.Confirmados);
+        setTotales(totalesRows[6], e.Suspendidos);
+        setTotales(totalesRows[7], e.SinConfirmar);
 
         // Agendas
         // Organizar lista
@@ -1448,16 +1550,21 @@ if (document.location.href.includes('reservo.cl/appointment')) {
         // Presentar lista
         sortedList.forEach((value, k) => {
           const tempRow = document.createElement('tr');
-
-          tempRow.innerHTML = `
+          relativeDoctor = tempRow.innerHTML = `
             <td style="text-align: center; border-right: 1px solid;">${k + 1}</td>
             <td style="max-width: calc(216px - 0.5rem);">${value.name}</td>
             <td style="width: calc(131px - 0.5rem); text-align: center;">
               ${value.schedule.from.text} - ${value.schedule.to.text}
-              <br>
-              <i style="font-size: smaller;">
-                (${value.relativeSchedule.from.text} - ${value.relativeSchedule.to.text})
-              </i>
+              ${
+                value.schedule.relative.value > value.schedule.to.value
+                  ? `
+                <br>
+                <i style="font-size: smaller;">
+                  (${value.schedule.from.text} - ${value.schedule.relative.text})
+                </i>
+                `
+                  : ''
+              }
             </td>
             <td style="
               font-size: larger;
@@ -1561,7 +1668,7 @@ function generateMessage() {
       /*
           Codigo Robado
 
-        */
+      */
       var codigo = document.querySelector('#id_phone__edit_0').value.replace('+', '');
       var numero = document.querySelector('#id_phone__edit_1').value;
       // Numero Invalido
