@@ -321,9 +321,6 @@ if (document.location.href.includes('reservo.cl/appointment')) {
     dateHTML: null,
     dateSubmit: null,
     currentData: null,
-    fixes: {
-      agenda: false,
-    },
   };
 
   datePickerSettings();
@@ -977,36 +974,32 @@ if (document.location.href.includes('reservo.cl/appointment')) {
     mainHTML.querySelector('#innerBody-date span').innerHTML = datePickerFormat(e);
 
     // Bugfix tratamiento en agendas
-    if (!iframeState.fixes.agenda) {
-      (async () => {
-        // Encontrar todos los selects a corregir
-        const foundSelects = document.querySelectorAll('#ui-datepicker-div select');
+    (async () => {
+      // Encontrar todos los selects a corregir
+      const foundSelects = document.querySelectorAll('#ui-datepicker-div select');
 
-        // Repetir ciclo hasta que todos los elementos tengan el ID
-        while (true) {
-          const foundIds = [];
+      // Repetir ciclo hasta que todos los elementos tengan el ID
+      while (true) {
+        const foundIds = [];
 
-          // Recorrer selects
-          foundSelects.forEach((value, k) => {
-            // Si no tienen ID, asignar
-            if (value.id === '') {
-              value.id = `mardito-reservo-agendas-fix-${k}`;
-            }
-            // De lo contrario, incluir en el array
-            else {
-              foundIds.push(k);
-            }
-          });
-
-          // Si el array contiene la misma cantidad de elementos que los selects, finalizar fix
-          if (foundIds.length === foundSelects.length) {
-            break;
+        // Recorrer selects
+        foundSelects.forEach((value, k) => {
+          // Si no tienen ID, asignar
+          if (value.id === '') {
+            value.id = `mardito-reservo-agendas-fix-${k}`;
           }
-        }
-      })();
+          // De lo contrario, incluir en el array
+          else {
+            foundIds.push(k);
+          }
+        });
 
-      iframeState.fixes.agenda = true;
-    }
+        // Si el array contiene la misma cantidad de elementos que los selects, finalizar fix
+        if (foundIds.length === foundSelects.length) {
+          break;
+        }
+      }
+    })();
 
     // Procesos extraccion de datos del iframe
     iframeState.callback = () => {
