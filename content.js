@@ -2699,6 +2699,108 @@ if (document.title.includes('Bono Electronico - Venta Interfaz')) {
   }).observe(document.querySelector('#contentFormaPago'), { childList: true });
 }
 
+if (document.location.href.includes('reservo.cl/configuracion_agenda/crear_configuracion')) {
+  const container = document.createElement('div');
+  const showButton = document.createElement('button');
+  const hideButton = document.createElement('button');
+
+  container.style.display = 'flex';
+  container.style.width = '100%';
+  container.style.justifyContent = 'center';
+  container.style.gap = '2rem';
+  container.style.margin = '2rem';
+
+  showButton.innerHTML = 'Mostrar Interfaz';
+  showButton.addEventListener('click', () => showInterface());
+
+  hideButton.innerHTML = 'Modo Desarrollo Rapido';
+  hideButton.addEventListener('click', () => hideInterface());
+
+  container.append(showButton);
+  container.append(hideButton);
+
+  document.getElementById('div_botones').prepend(container);
+
+  setTimeout(() => {
+    JSON.parse(sessionStorage.getItem('reservo-agenda-online-interface-hide'))
+      ? hideInterface()
+      : showInterface();
+
+    // minifier cosas
+    let prevCode;
+    let changed = false;
+    const inputArea = document.getElementById('funciones');
+    prevCode = inputArea.value;
+
+    inputArea.addEventListener('keyup', async () => {
+      if (prevCode !== inputArea.value && !changed) {
+        changed = true;
+        const resp = await Terser.minify(inputArea.value);
+        const minified = resp.code;
+
+        const temp = document.createElement('p');
+        temp.innerHTML = `${String(prevCode).length} <span style='color: red'>- ${
+          String(prevCode).length - String(minified).length
+        }</span> = ${String(minified).length}`;
+
+        inputArea.parentElement.append(temp);
+        inputArea.value = minified;
+        inputArea.dispatchEvent(new Event('input', { bubbles: true }));
+
+        setTimeout(() => {
+          document.querySelectorAll('#formulario button[type=submit]')[1].click();
+        }, 1000);
+      }
+    });
+  }, 1000);
+
+  function showInterface() {
+    console.log('show');
+
+    const appForm = document.querySelector('#app form');
+    const appForm_4_0 = appForm.childNodes[4].childNodes[0];
+    const appForm_4_2 = appForm.childNodes[4].childNodes[2];
+
+    document.getElementById('iframe_previsualizacion').style.display = 'block';
+    appForm.childNodes[0].style.display = 'block';
+    appForm_4_0.childNodes.forEach((value, k) => {
+      if (k < appForm_4_0.childNodes.length - 1) {
+        if (value.nodeType === 1) {
+          value.style.display = 'block';
+        }
+      }
+    });
+
+    appForm_4_2.childNodes[0].style.display = 'block';
+    appForm_4_2.childNodes[2].style.display = 'block';
+
+    sessionStorage.setItem('reservo-agenda-online-interface-hide', 'false');
+  }
+
+  function hideInterface() {
+    console.log('hide');
+
+    const appForm = document.querySelector('#app form');
+    const appForm_4_0 = appForm.childNodes[4].childNodes[0];
+    const appForm_4_2 = appForm.childNodes[4].childNodes[2];
+
+    document.getElementById('iframe_previsualizacion').style.display = 'none';
+    appForm.childNodes[0].style.display = 'none';
+    appForm_4_0.childNodes.forEach((value, k) => {
+      if (k < appForm_4_0.childNodes.length - 1) {
+        if (value.nodeType === 1) {
+          value.style.display = 'none';
+        }
+      }
+    });
+
+    appForm_4_2.childNodes[0].style.display = 'none';
+    appForm_4_2.childNodes[2].style.display = 'none';
+
+    sessionStorage.setItem('reservo-agenda-online-interface-hide', 'true');
+  }
+}
+
 // Conectar al socket de corresponder
 /*
 chrome.runtime.sendMessage({
