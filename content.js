@@ -2735,13 +2735,18 @@ if (document.location.href.includes('reservo.cl/configuracion_agenda/crear_confi
     inputArea.addEventListener('keyup', async () => {
       if (prevCode !== inputArea.value && !changed) {
         changed = true;
+
+        const copiedCode = inputArea.value;
         const resp = await Terser.minify(inputArea.value);
         const minified = resp.code;
 
         const temp = document.createElement('p');
-        temp.innerHTML = `${String(prevCode).length} <span style='color: red'>- ${
-          String(prevCode).length - String(minified).length
-        }</span> = ${String(minified).length}`;
+        temp.style.fontSize = '2rem';
+        temp.innerHTML = `${String(copiedCode).length} - <span style='color: red'>${
+          String(copiedCode).length - String(minified).length
+        }</span> = ${String(minified).length} <i>(${Number(
+          (String(minified).length / String(copiedCode).length - 1) * 100
+        ).toFixed(2)}%)</i>`;
 
         inputArea.parentElement.append(temp);
         inputArea.value = minified;
@@ -2755,8 +2760,6 @@ if (document.location.href.includes('reservo.cl/configuracion_agenda/crear_confi
   }, 1000);
 
   function showInterface() {
-    console.log('show');
-
     const appForm = document.querySelector('#app form');
     const appForm_4_0 = appForm.childNodes[4].childNodes[0];
     const appForm_4_2 = appForm.childNodes[4].childNodes[2];
@@ -2778,8 +2781,6 @@ if (document.location.href.includes('reservo.cl/configuracion_agenda/crear_confi
   }
 
   function hideInterface() {
-    console.log('hide');
-
     const appForm = document.querySelector('#app form');
     const appForm_4_0 = appForm.childNodes[4].childNodes[0];
     const appForm_4_2 = appForm.childNodes[4].childNodes[2];
