@@ -1,7 +1,7 @@
 import { modalState } from '../db';
 
-// Eventos al abrir la planillas de agendas
-try {
+export default function reservoEvents() {
+  // Eventos al abrir la planillas de agendas
   // De cliente ya registrado
   new MutationObserver((e) => {
     if (e[0].removedNodes) {
@@ -38,4 +38,37 @@ try {
       modalState.register = true;
     }
   }).observe(document.getElementById('myModal').parentElement, { childList: true });
-} catch (e) {}
+
+  // De datos del cliente
+  new MutationObserver((e) => {
+    // Al cargar datos
+    if (e[0].addedNodes.length !== 0) {
+      modalState.extraData = true;
+    }
+
+    // Al descargar datos
+    if (e[0].removedNodes.length !== 0) {
+      modalState.extraData = false;
+    }
+  }).observe(document.querySelector('#info_modal_datos_extra'), { childList: true });
+
+  // Eliminar fondo oscuro al abrir datos del cliente de forma programatica
+  new MutationObserver((e) => {
+    // Proceder solo si el modal se abrio de forma programatica
+    if (modalState.extraDataSystemTrigger) {
+      // Buscar en todos los cambios en el body
+      e.forEach((value) => {
+        const currentlyAdded = value.addedNodes[0];
+
+        // Si hay nuevos elementos agregados
+        if (currentlyAdded) {
+          // Y es el fondo oscuro
+          if (currentlyAdded.getAttribute('class') === 'modal-backdrop fade in') {
+            // Eliminar
+            currentlyAdded.remove();
+          }
+        }
+      });
+    }
+  }).observe(document.body, { childList: true });
+}

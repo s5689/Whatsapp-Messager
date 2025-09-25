@@ -1,13 +1,14 @@
 import { BACKGROUND, CONTENT } from '../../globals';
 
-export default async function whatsappMessager(e) {
+export default async function whatsappMessager({ data, source }) {
   // Mensaje proveniente del popup para informar que se abrio la extension
-  if (e.msg === 'popup-open' && e.target === BACKGROUND) {
-    chrome.tabs.sendMessage(e.source, { msg: 'popup-open', target: CONTENT });
+
+  if (data.msg === 'popup-open' && data.target === BACKGROUND) {
+    chrome.tabs.sendMessage(source, { msg: 'popup-open', target: CONTENT });
   }
 
   // Cerrra las pestañas de Whatsapp despues de enviar los mensajes
-  if (e.msg === 'closeWhatsapp' && e.target === BACKGROUND) {
+  if (data.msg === 'closeWhatsapp' && data.target === BACKGROUND) {
     let wsTabs = [];
 
     // Repetir hasta obtener ID de pestañas de WhatsApp
@@ -38,7 +39,7 @@ export default async function whatsappMessager(e) {
     }
 
     // Mover a la pestaña actual
-    chrome.tabs.update(e.source, { active: true }, () => {});
+    chrome.tabs.update(source, { active: true }, () => {});
     await new Promise((r) => setTimeout(() => r(), 1000));
 
     // Cerrar WhatsApp

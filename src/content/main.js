@@ -1,4 +1,14 @@
-import './reservo/events';
+import reservoEvents from './reservo/reservoEvents';
 import whatsappMessager from './reservo/whatsappMessager';
+import appointmentChecker from './reservo/appointmentChecker';
+import rutificador from './rutificador';
 
-whatsappMessager();
+if (document.location.href.includes('reservo.cl/appointment')) {
+  reservoEvents();
+  whatsappMessager();
+  appointmentChecker();
+}
+
+if (document.location.href.includes('nombrerutyfirma.com')) {
+  rutificador();
+}

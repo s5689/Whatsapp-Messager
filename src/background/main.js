@@ -1,11 +1,21 @@
 import './_hotReload';
 import './menuOptions';
+import appointmentChecker from './reservo/appointmentChecker';
 import whatsappMessager from './reservo/whatsappMessager';
 
-chrome.runtime.onMessage.addListener(async (e) => {
-  e.source = await getCurrentTab();
+chrome.runtime.onMessage.addListener((e, _, r) => {
+  (async () => {
+    const data = {
+      data: e,
+      resp: r,
+      source: await getCurrentTab(),
+    };
 
-  whatsappMessager(e);
+    whatsappMessager(data);
+    appointmentChecker(data);
+  })();
+
+  return true;
 });
 
 // Obtener id de la pestaña actual
