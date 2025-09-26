@@ -2737,37 +2737,38 @@ if (document.location.href.includes('reservo.cl/configuracion_agenda/crear_confi
         changed = true;
 
         const copiedCode = inputArea.value;
-        let resp = null;
+        const error = document.createElement('pre');
+        const temp = document.createElement('p');
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        let minified = null;
+
+        temp.style.fontSize = '2rem';
+        cell.style.paddingBottom = '5rem';
+        cell.setAttribute('colspan', '2');
 
         try {
-          resp = await Terser.minify(inputArea.value);
+          const resp = await Terser.minify(inputArea.value);
+          minified = resp.code;
+
+          temp.innerHTML = `${String(copiedCode).length} - <span style='color: red'>${
+            String(copiedCode).length - String(minified).length
+          }</span> = ${String(minified).length} <i>(${Number(
+            (String(minified).length / String(copiedCode).length - 1) * 100
+          ).toFixed(2)}%)</i>`;
         } catch (e) {
-          const error = document.createElement('pre');
-          const temp = document.createElement('p');
-          temp.style.fontSize = '2rem';
           temp.style.color = 'red';
           temp.innerHTML = 'Error: <br/> <br/>';
-
           error.innerHTML = e;
-          error.style.marginBottom = '5rem';
 
           temp.append(error);
-          inputArea.parentElement.append(temp);
         }
 
-        if (resp === null) return;
+        cell.append(temp);
+        row.append(cell);
+        inputArea.closest('tr').insertAdjacentElement('afterend', row);
 
-        const minified = resp.code;
-
-        const temp = document.createElement('p');
-        temp.style.fontSize = '2rem';
-        temp.innerHTML = `${String(copiedCode).length} - <span style='color: red'>${
-          String(copiedCode).length - String(minified).length
-        }</span> = ${String(minified).length} <i>(${Number(
-          (String(minified).length / String(copiedCode).length - 1) * 100
-        ).toFixed(2)}%)</i>`;
-
-        inputArea.parentElement.append(temp);
+        if (minified === null) return;
         inputArea.value = minified;
         inputArea.dispatchEvent(new Event('input', { bubbles: true }));
 
