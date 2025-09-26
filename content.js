@@ -2737,7 +2737,26 @@ if (document.location.href.includes('reservo.cl/configuracion_agenda/crear_confi
         changed = true;
 
         const copiedCode = inputArea.value;
-        const resp = await Terser.minify(inputArea.value);
+        let resp = null;
+
+        try {
+          resp = await Terser.minify(inputArea.value);
+        } catch (e) {
+          const error = document.createElement('pre');
+          const temp = document.createElement('p');
+          temp.style.fontSize = '2rem';
+          temp.style.color = 'red';
+          temp.innerHTML = 'Error: <br/> <br/>';
+
+          error.innerHTML = e;
+          error.style.marginBottom = '5rem';
+
+          temp.append(error);
+          inputArea.parentElement.append(temp);
+        }
+
+        if (resp === null) return;
+
         const minified = resp.code;
 
         const temp = document.createElement('p');
