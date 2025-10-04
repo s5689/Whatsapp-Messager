@@ -14,6 +14,7 @@ if (document.location.href.includes('nombrerutyfirma.com')) {
   rutificador();
 }
 
+// Mini utilidad para copiar fichas de Kinesiologia
 if (document.location.href.includes('reservo.cl/atencion/')) {
   recordCopier();
 }

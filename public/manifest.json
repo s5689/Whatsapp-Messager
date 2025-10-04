@@ -4,7 +4,7 @@
   "version": "7.0.0.0",
   "description": "Que pereza escribir todo a mano zzz...",
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "src/popup.html"
   },
   "background": {
     "service_worker": "src/background/main.js",
