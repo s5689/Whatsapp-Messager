@@ -47,6 +47,27 @@ function processForm(foundForms) {
           const cells = valua.querySelectorAll('td');
 
           if (cells[2].innerText.includes('Nombre: Ficha Kinesiologica')) {
+            new MutationObserver((e) => {
+              e.forEach(({ addedNodes }) => {
+                if (addedNodes.length !== 0) {
+                  const currentIframe = addedNodes[0].querySelector('iframe');
+
+                  currentIframe.addEventListener('load', () => {
+                    const currentContent = currentIframe.contentDocument;
+                    const innerDiv = currentContent.getElementById('printcontent');
+
+                    new MutationObserver((a) => {
+                      a.forEach(({ addedNodes }) => {
+                        if (addedNodes && addedNodes[0].nodeName === 'FORM') {
+                          console.log(addedNodes[0]);
+                        }
+                      });
+                    }).observe(innerDiv, { childList: true, subtree: true });
+                  });
+                }
+              });
+            }).observe(viewRecordButton.closest('tbody'), { childList: true });
+
             viewRecordButton.click();
             foundKine = true;
             break;
