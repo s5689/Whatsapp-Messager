@@ -171,7 +171,7 @@ chrome.runtime.onMessage.addListener((e) => {
   // Emitir error de multiples ventanas de Venta de Reservo
   if (e.msg === 'multiVentaError') {
     alert(
-      'Hay varias pestañas de Venta Abiertas.\nSolo mantenga abierta la del cliente actual por favor.'
+      'Hay varias pestañas de Venta Abiertas.\nSolo mantenga abierta la del cliente actual por favor.',
     );
   }
 
@@ -1325,7 +1325,7 @@ if (document.location.href.includes('reservo.cl/appointment')) {
           const relativeFromHours = Number(
             String(e.from.value).length === 4
               ? String(e.from.value).slice(0, 2)
-              : String(e.from.value)[0]
+              : String(e.from.value)[0],
           );
 
           const relativeFromTotal = e.from.value - 40 * relativeFromHours;
@@ -1365,11 +1365,11 @@ if (document.location.href.includes('reservo.cl/appointment')) {
       // Obtener minutos totales de un periodo de tiempo
       function getMinutes({ from, to }) {
         const fromHours = Number(
-          String(from.value).length === 4 ? String(from.value).slice(0, 2) : String(from.value)[0]
+          String(from.value).length === 4 ? String(from.value).slice(0, 2) : String(from.value)[0],
         );
 
         const toHours = Number(
-          String(to.value).length === 4 ? String(to.value).slice(0, 2) : String(to.value)[0]
+          String(to.value).length === 4 ? String(to.value).slice(0, 2) : String(to.value)[0],
         );
 
         const tFrom = from.value - 40 * fromHours;
@@ -1863,7 +1863,7 @@ function infoViewer() {
         // Abrir pestaña de fusion
         window.open(
           `https://reservo.cl/pacienteDentista/asociarPacientes/${clientData.duplicated[0].id}/`,
-          '_blank'
+          '_blank',
         );
       };
     }
@@ -2167,7 +2167,7 @@ try {
     // Estilo del boton
     copyButton.setAttribute(
       'style',
-      'background-color: unset; border: none; width: 35px; height: 29px; padding: 0'
+      'background-color: unset; border: none; width: 35px; height: 29px; padding: 0',
     );
 
     // Icono del Boton
@@ -2333,7 +2333,7 @@ try {
 
       setters.addTipoPago();
       setters.setTipoPago(2);
-      setters.changeSelection(2, 6);
+      setters.changeSelection(2, 5);
       setters.applyChanges(2);
 
       setters.setPagoValue(e, autocompleteData.copago);
@@ -2662,7 +2662,7 @@ if (document.title.includes('Bono Electronico - Venta Interfaz')) {
         background-color: antiquewhite;
         user-select: none;
         cursor: pointer;
-        `
+        `,
       );
       ammountHTML.onclick = () => {
         try {
@@ -2677,7 +2677,7 @@ if (document.title.includes('Bono Electronico - Venta Interfaz')) {
             payload: {
               prestacion,
               bonif: formatValue(
-                Number(bonif.replaceAll('.', '')) + Number(seguroComp.replaceAll('.', ''))
+                Number(bonif.replaceAll('.', '')) + Number(seguroComp.replaceAll('.', '')),
               ),
               copago,
               numeroBono,
@@ -2754,7 +2754,7 @@ if (document.location.href.includes('reservo.cl/configuracion_agenda/crear_confi
           temp.innerHTML = `${String(copiedCode).length} - <span style='color: red'>${
             String(copiedCode).length - String(minified).length
           }</span> = ${String(minified).length} <i>(${Number(
-            (String(minified).length / String(copiedCode).length - 1) * 100
+            (String(minified).length / String(copiedCode).length - 1) * 100,
           ).toFixed(2)}%)</i>`;
         } catch (e) {
           temp.style.color = 'red';
