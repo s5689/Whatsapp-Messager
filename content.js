@@ -2780,43 +2780,43 @@ if (document.location.href.includes('reservo.cl/configuracion_agenda/crear_confi
   }, 1000);
 
   function showInterface() {
-    const appForm = document.querySelector('#app form');
-    const appForm_4_0 = appForm.childNodes[4].childNodes[0];
-    const appForm_4_2 = appForm.childNodes[4].childNodes[2];
+    const appForm = document.querySelector('#plus form');
+    const appForm_4_0 = appForm.childNodes[0];
+    const appForm_4_2 = appForm.childNodes[2];
 
     document.getElementById('iframe_previsualizacion').style.display = 'block';
-    appForm.childNodes[0].style.display = 'block';
-    appForm_4_0.childNodes.forEach((value, k) => {
-      if (k < appForm_4_0.childNodes.length - 1) {
+    appForm_4_0.style.display = 'block';
+    appForm_4_2.childNodes[0].childNodes.forEach((value, k) => {
+      if (k < appForm_4_2.childNodes[0].childNodes.length - 1) {
         if (value.nodeType === 1) {
           value.style.display = 'block';
         }
       }
     });
 
-    appForm_4_2.childNodes[0].style.display = 'block';
-    appForm_4_2.childNodes[2].style.display = 'block';
+    // appForm_4_2.childNodes[0].style.display = 'block';
+    appForm_4_2.childNodes[1].style.display = 'block';
 
     sessionStorage.setItem('reservo-agenda-online-interface-hide', 'false');
   }
 
   function hideInterface() {
-    const appForm = document.querySelector('#app form');
-    const appForm_4_0 = appForm.childNodes[4].childNodes[0];
-    const appForm_4_2 = appForm.childNodes[4].childNodes[2];
+    const appForm = document.querySelector('#plus form');
+    const appForm_4_0 = appForm.childNodes[0];
+    const appForm_4_2 = appForm.childNodes[2];
 
     document.getElementById('iframe_previsualizacion').style.display = 'none';
-    appForm.childNodes[0].style.display = 'none';
-    appForm_4_0.childNodes.forEach((value, k) => {
-      if (k < appForm_4_0.childNodes.length - 1) {
+    appForm_4_0.style.display = 'none';
+    appForm_4_2.childNodes[0].childNodes.forEach((value, k) => {
+      if (k < appForm_4_2.childNodes[0].childNodes.length - 1) {
         if (value.nodeType === 1) {
           value.style.display = 'none';
         }
       }
     });
 
-    appForm_4_2.childNodes[0].style.display = 'none';
-    appForm_4_2.childNodes[2].style.display = 'none';
+    // appForm_4_2.childNodes[0].style.display = 'none';
+    appForm_4_2.childNodes[1].style.display = 'none';
 
     sessionStorage.setItem('reservo-agenda-online-interface-hide', 'true');
   }
