@@ -2612,6 +2612,13 @@ if (document.title.includes('Bono Electronico - Venta Directa')) {
           const tempInterval = setInterval(() => {
             const modalInputs = document.querySelectorAll('#MB_window input');
 
+            // Eliminar campo de medico tratante, si existe
+            const foundFieldsets = document.querySelectorAll('#frmInfoAdicional fieldset');
+
+            if (foundFieldsets.length > 1) {
+              foundFieldsets[1].remove();
+            }
+
             // Cuando esten los inputs listos, rellenar y continuar.
             if (modalInputs.length !== 0) {
               modalInputs[0].value = '77817653-K';
