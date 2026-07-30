@@ -2,7 +2,7 @@ let modalState = false;
 let isReady = false;
 let clientData = {};
 let autocompleteData = {};
-const withoutLicence = ['PABLO PACHECO'];
+const withoutLicence = ['PABLO PACHECO', 'GEHOBEL DE LA TORRE'];
 const vocalArray = [
   'á',
   'à',
